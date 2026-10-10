@@ -1,1 +1,301 @@
-aW1wb3J0IFN3aWZ0VUkKaW1wb3J0IFN3aWZ0RGF0YQoKLy8gTUFSSzogLSBUb2RheVZpZXcgKHRoZSBtb3JuaW5nIGdsYW5jZSwgUFJEIMKnNikKLy8KLy8gT25lIHByaW1hcnkgbnVtYmVyIChyZWNvdmVyeSksIHRoZW4gdml0YWxzLCBzbGVlcCwgc3RyYWluIOKAlCBnbGFuY2VhYmxlIGluCi8vIDUgc2Vjb25kcy4gSG9uZXN0IGVtcHR5IHN0YXRlcyBiZWZvcmUgdGhlcmUncyBkYXRhOyBuZXZlciBhIGZha2Ugc2NvcmUuCgpzdHJ1Y3QgVG9kYXlWaWV3OiBWaWV3IHsKICAgIEBFbnZpcm9ubWVudChBcHBTdGF0ZS5zZWxmKSBwcml2YXRlIHZhciBhcHBTdGF0ZQogICAgQFF1ZXJ5KHNvcnQ6IFxOaWdodFN1bW1hcnkubmlnaHREYXRlLCBvcmRlcjogLnJldmVyc2UpIHByaXZhdGUgdmFyIG5pZ2h0czogW05pZ2h0U3VtbWFyeV0KICAgIEBRdWVyeShzb3J0OiBcRGF5U3VtbWFyeS5kYXlEYXRlLCBvcmRlcjogLnJldmVyc2UpIHByaXZhdGUgdmFyIGRheXM6IFtEYXlTdW1tYXJ5XQogICAgQFF1ZXJ5IHByaXZhdGUgdmFyIHN5bmNSb3dzOiBbU3luY1N0YXRlXQogICAgQFF1ZXJ5IHByaXZhdGUgdmFyIHNldHRpbmdzUm93czogW0FwcFNldHRpbmdzXQoKICAgIHByaXZhdGUgdmFyIGxhdGVzdE5pZ2h0OiBOaWdodFN1bW1hcnk/IHsgbmlnaHRzLmZpcnN0IH0KICAgIHByaXZhdGUgdmFyIHRvZGF5OiBEYXlTdW1tYXJ5PyB7IGRheXMuZmlyc3QgfQogICAgcHJpdmF0ZSB2YXIgbGFzdFN5bmM6IERhdGU/IHsgc3luY1Jvd3MuZmlyc3Q/Lmxhc3RTeW5jIH0KICAgIHByaXZhdGUgdmFyIHVuaXQ6IFRlbXBlcmF0dXJlVW5pdCB7IHNldHRpbmdzUm93cy5maXJzdD8udGVtcGVyYXR1cmVVbml0ID8/IC5mYWhyZW5oZWl0IH0KCiAgICAvLy8gRGlzcGxheS1vbmx5IHJvbGxpbmcgbWVhbnMgZm9yIHRoZSBkZWx0YSBhcnJvd3MuIFRoZSBhdXRob3JpdGF0aXZlCiAgICAvLy8gYmFzZWxpbmVzIGxpdmUgaW4gdGhlIGFuYWx5dGljcyBwaXBlbGluZSAoQmFzZWxpbmVzKTsgdGhpcyBpcyBhIGNoZWFwCiAgICAvLy8gTyg3KSBkaXNwbGF5IGNvbnZlbmllbmNlLCBuZXZlciBhIHNjb3JlIGlucHV0LgogICAgcHJpdmF0ZSBmdW5jIHJlY2VudE1lYW4oXyBrZXlQYXRoOiBLZXlQYXRoPE5pZ2h0U3VtbWFyeSwgRG91YmxlPikgLT4gRG91YmxlPyB7CiAgICAgICAgbGV0IHJlY2VudCA9IG5pZ2h0cy5wcmVmaXgoNykKICAgICAgICBndWFyZCByZWNlbnQuY291bnQgPj0gMiBlbHNlIHsgcmV0dXJuIG5pbCB9CiAgICAgICAgcmV0dXJuIHJlY2VudC5tYXAgeyAkMFtrZXlQYXRoOiBrZXlQYXRoXSB9LnJlZHVjZSgwLCArKSAvIERvdWJsZShyZWNlbnQuY291bnQpCiAgICB9CgogICAgdmFyIGJvZHk6IHNvbWUgVmlldyB7CiAgICAgICAgTmF2aWdhdGlvblN0YWNrIHsKICAgICAgICAgICAgU2Nyb2xsVmlldyB7CiAgICAgICAgICAgICAgICBWU3RhY2soc3BhY2luZzogMTQpIHsKICAgICAgICAgICAgICAgICAgICBTdGFsZUJhbm5lcihsYXN0U3luYzogbGFzdFN5bmMpCgogICAgICAgICAgICAgICAgICAgIGlmIG5pZ2h0cy5jb3VudCA8IDcgewogICAgICAgICAgICAgICAgICAgICAgICBCYXNlbGluZUNvdW50ZG93bihuaWdodHNTb0ZhcjogbmlnaHRzLmNvdW50KQogICAgICAgICAgICAgICAgICAgIH0gZWxzZSBpZiBsZXQgbmlnaHQgPSBsYXRlc3ROaWdodCB7CiAgICAgICAgICAgICAgICAgICAgICAgIFJlY292ZXJ5Q2FyZChuaWdodDogbmlnaHQpCiAgICAgICAgICAgICAgICAgICAgICAgIFZpdGFsc1JvdyhuaWdodDogbmlnaHQsIHVuaXQ6IHVuaXQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBocnZCYXNlbGluZTogcmVjZW50TWVhbihcLmxuUk1TU0QpLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcmhyQmFzZWxpbmU6IHJlY2VudE1lYW4oXC5yZXN0aW5nSFIpKQogICAgICAgICAgICAgICAgICAgICAgICBTbGVlcENhcmQobmlnaHQ6IG5pZ2h0KQogICAgICAgICAgICAgICAgICAgIH0KCiAgICAgICAgICAgICAgICAgICAgaWYgbGV0IHRvZGF5IHsKICAgICAgICAgICAgICAgICAgICAgICAgU3RyYWluQ2FyZChkYXk6IHRvZGF5KQogICAgICAgICAgICAgICAgICAgIH0KCiAgICAgICAgICAgICAgICAgICAgaWYgbmlnaHRzLmlzRW1wdHkgJiYgZGF5cy5pc0VtcHR5IHsKICAgICAgICAgICAgICAgICAgICAgICAgRW1wdHlUb2RheShvblN5bmM6IHsgYXBwU3RhdGUuc3luYy5yZXF1ZXN0U3luYygpIH0pCiAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgLnBhZGRpbmcoKQogICAgICAgICAgICB9CiAgICAgICAgICAgIC5uYXZpZ2F0aW9uVGl0bGUoRGF0ZS5ub3cuZm9ybWF0dGVkKGRhdGU6IC5hYmJyZXZpYXRlZCwgdGltZTogLm9taXR0ZWQpKQogICAgICAgIH0KICAgIH0KfQoKLy8gTUFSSzogLSBCYXNlbGluZSBjb3VudGRvd24KCi8vLyBGaXJzdCA3IGRheXM6ICJCdWlsZGluZyBiYXNlbGluZSDigJQgTiBuaWdodHMgdG8gZ28uIiBObyBzY29yZSB1bnRpbCB0aGUKLy8vIGJhc2VsaW5lIGV4aXN0cyAoUFJEIMKnNS4zKS4KcHJpdmF0ZSBzdHJ1Y3QgQmFzZWxpbmVDb3VudGRvd246IFZpZXcgewogICAgbGV0IG5pZ2h0c1NvRmFyOiBJbnQKCiAgICB2YXIgYm9keTogc29tZSBWaWV3IHsKICAgICAgICBDYXJkIHsKICAgICAgICAgICAgVlN0YWNrKGFsaWdubWVudDogLmxlYWRpbmcsIHNwYWNpbmc6IDgpIHsKICAgICAgICAgICAgICAgIFRleHQoIkJ1aWxkaW5nIGJhc2VsaW5lIikKICAgICAgICAgICAgICAgICAgICAuZm9udCguaGVhZGxpbmUpCiAgICAgICAgICAgICAgICBUZXh0KCJcKG5pZ2h0c1NvRmFyKS83IG5pZ2h0cyDigJQgeW91ciByZWNvdmVyeSBzY29yZSB1bmxvY2tzIG9uY2UgdGhlIGJhc2VsaW5lIGV4aXN0cy4iKQogICAgICAgICAgICAgICAgICAgIC5mb250KC5zdWJoZWFkbGluZSkKICAgICAgICAgICAgICAgICAgICAuZm9yZWdyb3VuZFN0eWxlKC5zZWNvbmRhcnkpCiAgICAgICAgICAgICAgICBQcm9ncmVzc1ZpZXcodmFsdWU6IERvdWJsZShuaWdodHNTb0ZhciksIHRvdGFsOiA3KQogICAgICAgICAgICB9CiAgICAgICAgfQogICAgfQp9CgovLyBNQVJLOiAtIFJlY292ZXJ5IGNhcmQKCnByaXZhdGUgc3RydWN0IFJlY292ZXJ5Q2FyZDogVmlldyB7CiAgICBsZXQgbmlnaHQ6IE5pZ2h0U3VtbWFyeQogICAgQFN0YXRlIHByaXZhdGUgdmFyIHNob3dCYXNpcyA9IGZhbHNlCgogICAgdmFyIGJvZHk6IHNvbWUgVmlldyB7CiAgICAgICAgQ2FyZCB7CiAgICAgICAgICAgIFZTdGFjayhhbGlnbm1lbnQ6IC5sZWFkaW5nLCBzcGFjaW5nOiA2KSB7CiAgICAgICAgICAgICAgICBIU3RhY2soYWxpZ25tZW50OiAudG9wKSB7CiAgICAgICAgICAgICAgICAgICAgVlN0YWNrKGFsaWdubWVudDogLmxlYWRpbmcsIHNwYWNpbmc6IDIpIHsKICAgICAgICAgICAgICAgICAgICAgICAgaWYgbGV0IHNjb3JlID0gbmlnaHQucmVjb3ZlcnlTY29yZSwgbGV0IGJhbmQgPSBuaWdodC5yZWNvdmVyeUJhbmQgewogICAgICAgICAgICAgICAgICAgICAgICAgICAgVGV4dChGb3JtYXQucGVyY2VudChzY29yZSkpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvbnQoLnN5c3RlbShzaXplOiA2NCwgd2VpZ2h0OiAuYm9sZCkpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLm1vbm9zcGFjZWREaWdpdCgpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvcmVncm91bmRTdHlsZShDb2xvci5yZWNvdmVyeUJhbmQoYmFuZCkpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBUZXh0KGJhbmQubGFiZWwpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvbnQoLmhlYWRsaW5lKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC5mb3JlZ3JvdW5kU3R5bGUoQ29sb3IucmVjb3ZlcnlCYW5kKGJhbmQpKQogICAgICAgICAgICAgICAgICAgICAgICB9IGVsc2UgewogICAgICAgICAgICAgICAgICAgICAgICAgICAgVGV4dCgi4oCUIikKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAuZm9udCguc3lzdGVtKHNpemU6IDY0LCB3ZWlnaHQ6IC5ib2xkKSkKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAuZm9yZWdyb3VuZFN0eWxlKC5zZWNvbmRhcnkpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBUZXh0KCJObyBzY29yZSIpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvbnQoLmhlYWRsaW5lKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC5mb3JlZ3JvdW5kU3R5bGUoLnNlY29uZGFyeSkKICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICBTcGFjZXIoKQogICAgICAgICAgICAgICAgICAgIGlmIG5pZ2h0Lmxvd0NvbmZpZGVuY2UgewogICAgICAgICAgICAgICAgICAgICAgICBMb3dDb25maWRlbmNlQmFkZ2UocmVhc29uOiBuaWdodC5jb25maWRlbmNlUmVhc29uKQogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIH0KCiAgICAgICAgICAgICAgICBpZiBsZXQgYmFzaXMgPSBuaWdodC5yZWNvdmVyeUJhc2lzIHsKICAgICAgICAgICAgICAgICAgICBCdXR0b24gewogICAgICAgICAgICAgICAgICAgICAgICBzaG93QmFzaXMgPSB0cnVlCiAgICAgICAgICAgICAgICAgICAgfSBsYWJlbDogewogICAgICAgICAgICAgICAgICAgICAgICBUZXh0KGJhc2lzKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvbnQoLnN1YmhlYWRsaW5lKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvcmVncm91bmRTdHlsZSguc2Vjb25kYXJ5KQogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICAuYnV0dG9uU3R5bGUoLnBsYWluKQogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgfQogICAgICAgIC5zaGVldChpc1ByZXNlbnRlZDogJHNob3dCYXNpcykgewogICAgICAgICAgICBOYXZpZ2F0aW9uU3RhY2sgewogICAgICAgICAgICAgICAgVlN0YWNrKGFsaWdubWVudDogLmxlYWRpbmcsIHNwYWNpbmc6IDEyKSB7CiAgICAgICAgICAgICAgICAgICAgVGV4dChuaWdodC5yZWNvdmVyeUJhc2lzID8/ICJObyBiYXNpcyByZWNvcmRlZC4iKQogICAgICAgICAgICAgICAgICAgIGlmICFuaWdodC5jb25mb3VuZGVyRmxhZ3MuaXNFbXB0eSB7CiAgICAgICAgICAgICAgICAgICAgICAgIFRleHQoIkZsYWdzIHRvbmlnaHQ6IikKICAgICAgICAgICAgICAgICAgICAgICAgICAgIC5mb250KC5oZWFkbGluZSkKICAgICAgICAgICAgICAgICAgICAgICAgRm9yRWFjaChuaWdodC5jb25mb3VuZGVyRmxhZ3MsIGlkOiBcLnJhd1ZhbHVlKSB7IGZsYWcgaW4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIFRleHQoIuKAoiBcKGZsYWcubGFiZWwpIikKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAuZm9udCguc3ViaGVhZGxpbmUpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvcmVncm91bmRTdHlsZSguc2Vjb25kYXJ5KQogICAgICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgIGlmIG5pZ2h0Lmxvd0NvbmZpZGVuY2UsIGxldCByZWFzb24gPSBuaWdodC5jb25maWRlbmNlUmVhc29uIHsKICAgICAgICAgICAgICAgICAgICAgICAgVGV4dCgiTG93IGNvbmZpZGVuY2U6IFwocmVhc29uKSIpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAuZm9udCguc3ViaGVhZGxpbmUpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAuZm9yZWdyb3VuZFN0eWxlKC5zZWNvbmRhcnkpCiAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgIFNwYWNlcigpCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAucGFkZGluZygpCiAgICAgICAgICAgICAgICAubmF2aWdhdGlvblRpdGxlKCJXaHkgdGhpcyBzY29yZSIpCiAgICAgICAgICAgICAgICAubmF2aWdhdGlvbkJhclRpdGxlRGlzcGxheU1vZGUoLmlubGluZSkKICAgICAgICAgICAgfQogICAgICAgICAgICAucHJlc2VudGF0aW9uRGV0ZW50cyhbLm1lZGl1bV0pCiAgICAgICAgfQogICAgfQp9CgovLyBNQVJLOiAtIE92ZXJuaWdodCB2aXRhbHMgcm93IChleGFjdGx5IDQgdGlsZXMsIFBSRCDCpzYpCgpwcml2YXRlIHN0cnVjdCBWaXRhbHNSb3c6IFZpZXcgewogICAgbGV0IG5pZ2h0OiBOaWdodFN1bW1hcnkKICAgIGxldCB1bml0OiBUZW1wZXJhdHVyZVVuaXQKICAgIGxldCBocnZCYXNlbGluZTogRG91YmxlPwogICAgbGV0IHJockJhc2VsaW5lOiBEb3VibGU/CgogICAgdmFyIGJvZHk6IHNvbWUgVmlldyB7CiAgICAgICAgSFN0YWNrKHNwYWNpbmc6IDgpIHsKICAgICAgICAgICAgVml0YWxUaWxlKGljb246ICJoZWFydC5maWxsIiwgdGl0bGU6ICJIUlYiLAogICAgICAgICAgICAgICAgICAgICAgdmFsdWU6IFN0cmluZyhmb3JtYXQ6ICIlLjBmIG1zIiwgZXhwKG5pZ2h0LmxuUk1TU0QpKSwKICAgICAgICAgICAgICAgICAgICAgIGRlbHRhOiBocnZCYXNlbGluZS5tYXAgeyBleHAobmlnaHQubG5STVNTRCkgLSBleHAoJDApIH0sIGRlbHRhVW5pdDogIiBtcyIpCiAgICAgICAgICAgIFZpdGFsVGlsZShpY29uOiAiaGVhcnQucHVsc2UiLCB0aXRsZTogIlJlc3RpbmcgSFIiLAogICAgICAgICAgICAgICAgICAgICAgdmFsdWU6IFN0cmluZyhmb3JtYXQ6ICIlLjBmIGJwbSIsIG5pZ2h0LnJlc3RpbmdIUiksCiAgICAgICAgICAgICAgICAgICAgICBkZWx0YTogcmhyQmFzZWxpbmUubWFwIHsgbmlnaHQucmVzdGluZ0hSIC0gJDAgfSwgZGVsdGFVbml0OiAiIGJwbSIpCiAgICAgICAgICAgIFZpdGFsVGlsZShpY29uOiAibHVuZ3MuZmlsbCIsIHRpdGxlOiAiUmVzcC4gcmF0ZSIsCiAgICAgICAgICAgICAgICAgICAgICB2YWx1ZTogbmlnaHQucmVzcGlyYXRvcnlSYXRlLm1hcCB7IFN0cmluZyhmb3JtYXQ6ICIlLjFmIC9taW4iLCAkMCkgfSA/PyAi4oCUIiwKICAgICAgICAgICAgICAgICAgICAgIGRlbHRhOiBuaWwsIGRlbHRhVW5pdDogIiIpCiAgICAgICAgICAgIFZpdGFsVGlsZShpY29uOiAidGhlcm1vbWV0ZXIiLCB0aXRsZTogIlNraW4gdGVtcCIsCiAgICAgICAgICAgICAgICAgICAgICB2YWx1ZTogbmlnaHQuc2tpblRlbXBEZXZpYXRpb24ubWFwIHsgdW5pdC5mb3JtYXQoY2Vsc2l1czogJDApIH0gPz8gIuKAlCIsCiAgICAgICAgICAgICAgICAgICAgICBkZWx0YTogbmlsLCBkZWx0YVVuaXQ6ICIiKQogICAgICAgIH0KICAgIH0KfQoKLy8gTUFSSzogLSBTbGVlcCBjYXJkCgpwcml2YXRlIHN0cnVjdCBTbGVlcENhcmQ6IFZpZXcgewogICAgbGV0IG5pZ2h0OiBOaWdodFN1bW1hcnkKCiAgICB2YXIgYm9keTogc29tZSBWaWV3IHsKICAgICAgICBDYXJkIHsKICAgICAgICAgICAgVlN0YWNrKGFsaWdubWVudDogLmxlYWRpbmcsIHNwYWNpbmc6IDEwKSB7CiAgICAgICAgICAgICAgICBIU3RhY2sgewogICAgICAgICAgICAgICAgICAgIEltYWdlKHN5c3RlbU5hbWU6ICJtb29uLmZpbGwiKQogICAgICAgICAgICAgICAgICAgICAgICAuZm9yZWdyb3VuZFN0eWxlKC5zZWNvbmRhcnkpCiAgICAgICAgICAgICAgICAgICAgVGV4dCgiU2xlZXAiKQogICAgICAgICAgICAgICAgICAgICAgICAuZm9udCguaGVhZGxpbmUpCiAgICAgICAgICAgICAgICAgICAgU3BhY2VyKCkKICAgICAgICAgICAgICAgICAgICBUZXh0KCJcKEZvcm1hdC5ob3Vyc01pbnV0ZXMobmlnaHQudG90YWxTbGVlcE1pbnV0ZXMpKSDCtyBcKEZvcm1hdC5wZXJjZW50KG5pZ2h0LnNsZWVwRWZmaWNpZW5jeSAqIDEwMCkpIGVmZmljaWVuY3kiKQogICAgICAgICAgICAgICAgICAgICAgICAuZm9udCguc3ViaGVhZGxpbmUpCiAgICAgICAgICAgICAgICAgICAgICAgIC5tb25vc3BhY2VkRGlnaXQoKQogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgU3RhZ2VCYXIobGlnaHQ6IG5pZ2h0LmxpZ2h0TWludXRlcywgZGVlcDogbmlnaHQuZGVlcE1pbnV0ZXMsCiAgICAgICAgICAgICAgICAgICAgICAgICByZW06IG5pZ2h0LnJlbU1pbnV0ZXMsIHdha2U6IG5pZ2h0Lndha2VNaW51dGVzKQogICAgICAgICAgICAgICAgSFN0YWNrIHsKICAgICAgICAgICAgICAgICAgICBUZXh0KCJuZWVkOiBcKEZvcm1hdC5ob3Vyc01pbnV0ZXMobmlnaHQuc2xlZXBOZWVkTWludXRlcykpIikKICAgICAgICAgICAgICAgICAgICAgICAgLmZvbnQoLmNhcHRpb24pCiAgICAgICAgICAgICAgICAgICAgICAgIC5mb3JlZ3JvdW5kU3R5bGUoLnNlY29uZGFyeSkKICAgICAgICAgICAgICAgICAgICBTcGFjZXIoKQogICAgICAgICAgICAgICAgICAgIGlmIGxldCBvbnNldCA9IG5pZ2h0LnNsZWVwT25zZXQsIGxldCB3YWtlID0gbmlnaHQud2FrZVRpbWUgewogICAgICAgICAgICAgICAgICAgICAgICBUZXh0KCJcKG9uc2V0LmZvcm1hdHRlZChkYXRlOiAub21pdHRlZCwgdGltZTogLnNob3J0ZW5lZCkpIOKAkyBcKHdha2UuZm9ybWF0dGVkKGRhdGU6IC5vbWl0dGVkLCB0aW1lOiAuc2hvcnRlbmVkKSkiKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvbnQoLmNhcHRpb24pCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAuZm9yZWdyb3VuZFN0eWxlKC5zZWNvbmRhcnkpCiAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgLy8gS25vd24tYmlhcyBkaXNjbG9zdXJlIChmb290bm90ZSwgbm90IGEgcG9wdXAg4oCUIFBSRCDCpzUuNCkuCiAgICAgICAgICAgICAgICBUZXh0KCJXcmlzdCBzdGFnaW5nIHRlbmRzIHRvIHJlYWQgbGlnaHQgc2xlZXAgaGlnaCwgYW5kIGRlZXAgc2xlZXAgYW5kIGF3YWtlIHRpbWUgbG93IOKAlCB0cnVlIG9mIGV2ZXJ5IHdyaXN0IGRldmljZS4iKQogICAgICAgICAgICAgICAgICAgIC5mb250KC5jYXB0aW9uMikKICAgICAgICAgICAgICAgICAgICAuZm9yZWdyb3VuZFN0eWxlKC50ZXJ0aWFyeSkKICAgICAgICAgICAgfQogICAgICAgIH0KICAgIH0KfQoKLy8gTUFSSzogLSBTdHJhaW4gY2FyZAoKcHJpdmF0ZSBzdHJ1Y3QgU3RyYWluQ2FyZDogVmlldyB7CiAgICBsZXQgZGF5OiBEYXlTdW1tYXJ5CiAgICBAU3RhdGUgcHJpdmF0ZSB2YXIgcHVsc2UgPSBmYWxzZQoKICAgIHZhciBib2R5OiBzb21lIFZpZXcgewogICAgICAgIENhcmQgewogICAgICAgICAgICBIU3RhY2soc3BhY2luZzogMTYpIHsKICAgICAgICAgICAgICAgIFpTdGFjayB7CiAgICAgICAgICAgICAgICAgICAgQ2lyY2xlKCkKICAgICAgICAgICAgICAgICAgICAgICAgLnRyaW0oZnJvbTogMCwgdG86IDAuNzUpCiAgICAgICAgICAgICAgICAgICAgICAgIC5zdHJva2UoLnF1YXRlcm5hcnksIGxpbmVXaWR0aDogOCkKICAgICAgICAgICAgICAgICAgICAgICAgLnJvdGF0aW9uRWZmZWN0KC5kZWdyZWVzKDEzNSkpCiAgICAgICAgICAgICAgICAgICAgICAgIC5mcmFtZSh3aWR0aDogNzIsIGhlaWdodDogNzIpCiAgICAgICAgICAgICAgICAgICAgQ2lyY2xlKCkKICAgICAgICAgICAgICAgICAgICAgICAgLnRyaW0oZnJvbTogMCwgdG86IDAuNzUgKiBtaW4oZGF5LnN0cmFpbiAvIDIxLCAxKSkKICAgICAgICAgICAgICAgICAgICAgICAgLnN0cm9rZSgucHJpbWFyeSwgbGluZVdpZHRoOiA4KQogICAgICAgICAgICAgICAgICAgICAgICAucm90YXRpb25FZmZlY3QoLmRlZ3JlZXMoMTM1KSkKICAgICAgICAgICAgICAgICAgICAgICAgLmZyYW1lKHdpZHRoOiA3MiwgaGVpZ2h0OiA3MikKICAgICAgICAgICAgICAgICAgICBUZXh0KFN0cmluZyhmb3JtYXQ6ICIlLjFmIiwgZGF5LnN0cmFpbikpCiAgICAgICAgICAgICAgICAgICAgICAgIC5mb250KC50aXRsZTIuYm9sZCgpKQogICAgICAgICAgICAgICAgICAgICAgICAubW9ub3NwYWNlZERpZ2l0KCkKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIFZTdGFjayhhbGlnbm1lbnQ6IC5sZWFkaW5nLCBzcGFjaW5nOiA0KSB7CiAgICAgICAgICAgICAgICAgICAgSFN0YWNrKHNwYWNpbmc6IDYpIHsKICAgICAgICAgICAgICAgICAgICAgICAgVGV4dCgiU3RyYWluIikKICAgICAgICAgICAgICAgICAgICAgICAgICAgIC5mb250KC5oZWFkbGluZSkKICAgICAgICAgICAgICAgICAgICAgICAgaWYgZGF5LmlzTGl2ZSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAvLyBMSVZFIGRvdCDigJQgYWNjZW50LCBuZXZlciBncmVlbi9yZWQgKHJlc2VydmVkIGZvciByZWNvdmVyeSkuCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBDaXJjbGUoKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC5maWxsKENvbG9yLmFjY2VudENvbG9yKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC5mcmFtZSh3aWR0aDogOCwgaGVpZ2h0OiA4KQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC5vcGFjaXR5KHB1bHNlID8gMC40IDogMSkKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAub25BcHBlYXIgewogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB3aXRoQW5pbWF0aW9uKC5lYXNlSW5PdXQoZHVyYXRpb246IDEpLnJlcGVhdEZvcmV2ZXIoKSkgewogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHVsc2UgPSB0cnVlCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBUZXh0KCJMSVZFIikKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAuZm9udCguY2FwdGlvbjIuYm9sZCgpKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC5mb3JlZ3JvdW5kU3R5bGUoLnNlY29uZGFyeSkKICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICBUZXh0KCJvZiAyMSDCtyB1cGRhdGVzIHRocm91Z2ggdGhlIGRheSIpCiAgICAgICAgICAgICAgICAgICAgICAgIC5mb250KC5zdWJoZWFkbGluZSkKICAgICAgICAgICAgICAgICAgICAgICAgLmZvcmVncm91bmRTdHlsZSguc2Vjb25kYXJ5KQogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgU3BhY2VyKCkKICAgICAgICAgICAgfQogICAgICAgIH0KICAgIH0KfQoKLy8gTUFSSzogLSBFbXB0eSBzdGF0ZQoKcHJpdmF0ZSBzdHJ1Y3QgRW1wdHlUb2RheTogVmlldyB7CiAgICBsZXQgb25TeW5jOiAoKSAtPiBWb2lkCgogICAgdmFyIGJvZHk6IHNvbWUgVmlldyB7CiAgICAgICAgQ2FyZCB7CiAgICAgICAgICAgIFZTdGFjayhzcGFjaW5nOiAxMikgewogICAgICAgICAgICAgICAgSW1hZ2Uoc3lzdGVtTmFtZTogImFwcGxld2F0Y2giKQogICAgICAgICAgICAgICAgICAgIC5mb250KC5zeXN0ZW0oc2l6ZTogNDQpKQogICAgICAgICAgICAgICAgICAgIC5mb3JlZ3JvdW5kU3R5bGUoLnNlY29uZGFyeSkKICAgICAgICAgICAgICAgIFRleHQoIk5vIGRhdGEgeWV0IikKICAgICAgICAgICAgICAgICAgICAuZm9udCguaGVhZGxpbmUpCiAgICAgICAgICAgICAgICBUZXh0KCJTeW5jIHlvdXIgYmFuZCBhbmQgeW91ciBmaXJzdCBuaWdodCB3aWxsIGFwcGVhciBoZXJlIGluIHRoZSBtb3JuaW5nLiIpCiAgICAgICAgICAgICAgICAgICAgLmZvbnQoLnN1YmhlYWRsaW5lKQogICAgICAgICAgICAgICAgICAgIC5mb3JlZ3JvdW5kU3R5bGUoLnNlY29uZGFyeSkKICAgICAgICAgICAgICAgICAgICAubXVsdGlsaW5lVGV4dEFsaWdubWVudCguY2VudGVyKQogICAgICAgICAgICAgICAgQnV0dG9uKCJTeW5jIG5vdyIsIGFjdGlvbjogb25TeW5jKQogICAgICAgICAgICAgICAgICAgIC5idXR0b25TdHlsZSguYm9yZGVyZWRQcm9taW5lbnQpCiAgICAgICAgICAgIH0KICAgICAgICAgICAgLmZyYW1lKG1heFdpZHRoOiAuaW5maW5pdHkpCiAgICAgICAgICAgIC5wYWRkaW5nKC52ZXJ0aWNhbCwgMTIpCiAgICAgICAgfQogICAgfQp9Cg==
+import SwiftUI
+import SwiftData
+
+// MARK: - TodayView (the morning glance, PRD §6)
+//
+// One primary number (recovery), then vitals, sleep, strain — glanceable in
+// 5 seconds. Honest empty states before there's data; never a fake score.
+
+struct TodayView: View {
+    @Environment(AppState.self) private var appState
+    @Query(sort: \NightSummary.nightDate, order: .reverse) private var nights: [NightSummary]
+    @Query(sort: \DaySummary.dayDate, order: .reverse) private var days: [DaySummary]
+    @Query private var syncRows: [SyncState]
+    @Query private var settingsRows: [AppSettings]
+
+    private var latestNight: NightSummary? { nights.first }
+    private var today: DaySummary? { days.first }
+    private var lastSync: Date? { syncRows.first?.lastSync }
+    private var unit: TemperatureUnit { settingsRows.first?.temperatureUnit ?? .fahrenheit }
+
+    /// Display-only rolling means for the delta arrows. The authoritative
+    /// baselines live in the analytics pipeline (Baselines); this is a cheap
+    /// O(7) display convenience, never a score input.
+    private func recentMean(_ keyPath: KeyPath<NightSummary, Double>) -> Double? {
+        let recent = nights.prefix(7)
+        guard recent.count >= 2 else { return nil }
+        return recent.map { $0[keyPath: keyPath] }.reduce(0, +) / Double(recent.count)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 14) {
+                    StaleBanner(lastSync: lastSync)
+
+                    if nights.count < 7 {
+                        BaselineCountdown(nightsSoFar: nights.count)
+                    } else if let night = latestNight {
+                        RecoveryCard(night: night)
+                        VitalsRow(night: night, unit: unit,
+                                  hrvBaseline: recentMean(\.lnRMSSD),
+                                  rhrBaseline: recentMean(\.restingHR))
+                        SleepCard(night: night)
+                    }
+
+                    if let today {
+                        StrainCard(day: today)
+                    }
+
+                    if nights.isEmpty && days.isEmpty {
+                        EmptyToday(onSync: { appState.sync.requestSync() })
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle(Date.now.formatted(date: .abbreviated, time: .omitted))
+        }
+    }
+}
+
+// MARK: - Baseline countdown
+
+/// First 7 days: "Building baseline — N nights to go." No score until the
+/// baseline exists (PRD §5.3).
+private struct BaselineCountdown: View {
+    let nightsSoFar: Int
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Building baseline")
+                    .font(.headline)
+                Text("\(nightsSoFar)/7 nights — your recovery score unlocks once the baseline exists.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                ProgressView(value: Double(nightsSoFar), total: 7)
+            }
+        }
+    }
+}
+
+// MARK: - Recovery card
+
+private struct RecoveryCard: View {
+    let night: NightSummary
+    @State private var showBasis = false
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let score = night.recoveryScore, let band = night.recoveryBand {
+                            Text(Format.percent(score))
+                                .font(.system(size: 64, weight: .bold))
+                                .monospacedDigit()
+                                .foregroundStyle(Color.recoveryBand(band))
+                            Text(band.label)
+                                .font(.headline)
+                                .foregroundStyle(Color.recoveryBand(band))
+                        } else {
+                            Text("—")
+                                .font(.system(size: 64, weight: .bold))
+                                .foregroundStyle(.secondary)
+                            Text("No score")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    if night.lowConfidence {
+                        LowConfidenceBadge(reason: night.confidenceReason)
+                    }
+                }
+
+                if let basis = night.recoveryBasis {
+                    Button {
+                        showBasis = true
+                    } label: {
+                        Text(basis)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .sheet(isPresented: $showBasis) {
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(night.recoveryBasis ?? "No basis recorded.")
+                    if !night.confounderFlags.isEmpty {
+                        Text("Flags tonight:")
+                            .font(.headline)
+                        ForEach(night.confounderFlags, id: \.rawValue) { flag in
+                            Text("• \(flag.label)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    if night.lowConfidence, let reason = night.confidenceReason {
+                        Text("Low confidence: \(reason)")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding()
+                .navigationTitle("Why this score")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+            .presentationDetents([.medium])
+        }
+    }
+}
+
+// MARK: - Overnight vitals row (exactly 4 tiles, PRD §6)
+
+private struct VitalsRow: View {
+    let night: NightSummary
+    let unit: TemperatureUnit
+    let hrvBaseline: Double?
+    let rhrBaseline: Double?
+
+    var body: some View {
+        HStack(spacing: 8) {
+            VitalTile(icon: "heart.fill", title: "HRV",
+                      value: String(format: "%.0f ms", exp(night.lnRMSSD)),
+                      delta: hrvBaseline.map { exp(night.lnRMSSD) - exp($0) }, deltaUnit: " ms")
+            VitalTile(icon: "heart.pulse", title: "Resting HR",
+                      value: String(format: "%.0f bpm", night.restingHR),
+                      delta: rhrBaseline.map { night.restingHR - $0 }, deltaUnit: " bpm")
+            VitalTile(icon: "lungs.fill", title: "Resp. rate",
+                      value: night.respiratoryRate.map { String(format: "%.1f /min", $0) } ?? "—",
+                      delta: nil, deltaUnit: "")
+            VitalTile(icon: "thermometer", title: "Skin temp",
+                      value: night.skinTempDeviation.map { unit.format(celsius: $0) } ?? "—",
+                      delta: nil, deltaUnit: "")
+        }
+    }
+}
+
+// MARK: - Sleep card
+
+private struct SleepCard: View {
+    let night: NightSummary
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "moon.fill")
+                        .foregroundStyle(.secondary)
+                    Text("Sleep")
+                        .font(.headline)
+                    Spacer()
+                    Text("\(Format.hoursMinutes(night.totalSleepMinutes)) · \(Format.percent(night.sleepEfficiency * 100)) efficiency")
+                        .font(.subheadline)
+                        .monospacedDigit()
+                }
+                StageBar(light: night.lightMinutes, deep: night.deepMinutes,
+                         rem: night.remMinutes, wake: night.wakeMinutes)
+                HStack {
+                    Text("need: \(Format.hoursMinutes(night.sleepNeedMinutes))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if let onset = night.sleepOnset, let wake = night.wakeTime {
+                        Text("\(onset.formatted(date: .omitted, time: .shortened)) – \(wake.formatted(date: .omitted, time: .shortened))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                // Known-bias disclosure (footnote, not a popup — PRD §5.4).
+                Text("Wrist staging tends to read light sleep high, and deep sleep and awake time low — true of every wrist device.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+    }
+}
+
+// MARK: - Strain card
+
+private struct StrainCard: View {
+    let day: DaySummary
+    @State private var pulse = false
+
+    var body: some View {
+        Card {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .trim(from: 0, to: 0.75)
+                        .stroke(.quaternary, lineWidth: 8)
+                        .rotationEffect(.degrees(135))
+                        .frame(width: 72, height: 72)
+                    Circle()
+                        .trim(from: 0, to: 0.75 * min(day.strain / 21, 1))
+                        .stroke(.primary, lineWidth: 8)
+                        .rotationEffect(.degrees(135))
+                        .frame(width: 72, height: 72)
+                    Text(String(format: "%.1f", day.strain))
+                        .font(.title2.bold())
+                        .monospacedDigit()
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("Strain")
+                            .font(.headline)
+                        if day.isLive {
+                            // LIVE dot — accent, never green/red (reserved for recovery).
+                            Circle()
+                                .fill(Color.accentColor)
+                                .frame(width: 8, height: 8)
+                                .opacity(pulse ? 0.4 : 1)
+                                .onAppear {
+                                    withAnimation(.easeInOut(duration: 1).repeatForever()) {
+                                        pulse = true
+                                    }
+                                }
+                            Text("LIVE")
+                                .font(.caption2.bold())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Text("of 21 · updates through the day")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+        }
+    }
+}
+
+// MARK: - Empty state
+
+private struct EmptyToday: View {
+    let onSync: () -> Void
+
+    var body: some View {
+        Card {
+            VStack(spacing: 12) {
+                Image(systemName: "applewatch")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.secondary)
+                Text("No data yet")
+                    .font(.headline)
+                Text("Sync your band and your first night will appear here in the morning.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Button("Sync now", action: onSync)
+                    .buttonStyle(.borderedProminent)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+        }
+    }
+}

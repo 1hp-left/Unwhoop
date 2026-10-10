@@ -1,1 +1,244 @@
-aW1wb3J0IFN3aWZ0VUkKaW1wb3J0IFN3aWZ0RGF0YQppbXBvcnQgQ2hhcnRzCgovLyBNQVJLOiAtIFRyZW5kc1ZpZXcgKFBSRCDCpzYpCi8vCi8vIFNlZ21lbnRlZCA3RCAvIDMwRCAvIDkwRC4gRm91ciBjaGFydHMsIEZJWEVEIG9yZGVyOgovLyBIUlYgd2l0aCBiYXNlbGluZSBiYW5kLCBSZXN0aW5nIEhSLCBTbGVlcCBkdXJhdGlvbiAoYmFycyksIFN0cmFpbiAoYmFycykuCi8vIENoYXJ0cyBhcmUgbW9ub2Nocm9tZSArIG9uZSBhY2NlbnQuIEJlbmNobWFyayBzdHJpcDogREVWIG9ubHksIGFuZCBvbmx5Ci8vIHdoZW4gcGFpcmVkIGRhdGEgYWN0dWFsbHkgZXhpc3RzIChQUkQgwqc1LjYg4oCUIG5vIGRldiBVSSBpbiBwcm9kLCBubyBwbGVhZGluZykuCgpwcml2YXRlIGVudW0gVHJlbmRSYW5nZTogU3RyaW5nLCBDYXNlSXRlcmFibGUgewogICAgY2FzZSBkNyA9ICI3RCIKICAgIGNhc2UgZDMwID0gIjMwRCIKICAgIGNhc2UgZDkwID0gIjkwRCIKCiAgICB2YXIgZGF5czogSW50IHsKICAgICAgICBzd2l0Y2ggc2VsZiB7CiAgICAgICAgY2FzZSAuZDc6IDcKICAgICAgICBjYXNlIC5kMzA6IDMwCiAgICAgICAgY2FzZSAuZDkwOiA5MAogICAgICAgIH0KICAgIH0KfQoKc3RydWN0IFRyZW5kc1ZpZXc6IFZpZXcgewogICAgQFF1ZXJ5KHNvcnQ6IFxOaWdodFN1bW1hcnkubmlnaHREYXRlLCBvcmRlcjogLnJldmVyc2UpIHByaXZhdGUgdmFyIG5pZ2h0czogW05pZ2h0U3VtbWFyeV0KICAgIEBRdWVyeShzb3J0OiBcRGF5U3VtbWFyeS5kYXlEYXRlLCBvcmRlcjogLnJldmVyc2UpIHByaXZhdGUgdmFyIGRheXM6IFtEYXlTdW1tYXJ5XQogICAgI2lmIERFQlVHCiAgICBAUXVlcnkoc29ydDogXEJlbmNobWFya0VudHJ5LmVudHJ5RGF0ZSwgb3JkZXI6IC5yZXZlcnNlKSBwcml2YXRlIHZhciBlbnRyaWVzOiBbQmVuY2htYXJrRW50cnldCiAgICAjZW5kaWYKCiAgICBAU3RhdGUgcHJpdmF0ZSB2YXIgcmFuZ2U6IFRyZW5kUmFuZ2UgPSAuZDMwCgogICAgcHJpdmF0ZSB2YXIgbmlnaHRzSW5SYW5nZTogW05pZ2h0U3VtbWFyeV0gewogICAgICAgIGxldCBjdXRvZmYgPSBDYWxlbmRhci5jdXJyZW50LmRhdGUoYnlBZGRpbmc6IC5kYXksIHZhbHVlOiAtcmFuZ2UuZGF5cywgdG86IC5ub3cpID8/IC5kaXN0YW50UGFzdAogICAgICAgIHJldHVybiBuaWdodHMuZmlsdGVyIHsgJDAubmlnaHREYXRlID49IGN1dG9mZiB9LnNvcnRlZCB7ICQwLm5pZ2h0RGF0ZSA8ICQxLm5pZ2h0RGF0ZSB9CiAgICB9CgogICAgcHJpdmF0ZSB2YXIgZGF5c0luUmFuZ2U6IFtEYXlTdW1tYXJ5XSB7CiAgICAgICAgbGV0IGN1dG9mZiA9IENhbGVuZGFyLmN1cnJlbnQuZGF0ZShieUFkZGluZzogLmRheSwgdmFsdWU6IC1yYW5nZS5kYXlzLCB0bzogLm5vdykgPz8gLmRpc3RhbnRQYXN0CiAgICAgICAgcmV0dXJuIGRheXMuZmlsdGVyIHsgJDAuZGF5RGF0ZSA+PSBjdXRvZmYgfS5zb3J0ZWQgeyAkMC5kYXlEYXRlIDwgJDEuZGF5RGF0ZSB9CiAgICB9CgogICAgdmFyIGJvZHk6IHNvbWUgVmlldyB7CiAgICAgICAgTmF2aWdhdGlvblN0YWNrIHsKICAgICAgICAgICAgU2Nyb2xsVmlldyB7CiAgICAgICAgICAgICAgICBWU3RhY2soc3BhY2luZzogMTgpIHsKICAgICAgICAgICAgICAgICAgICAjaWYgREVCVUcKICAgICAgICAgICAgICAgICAgICBCZW5jaG1hcmtTdHJpcChuaWdodHM6IG5pZ2h0cywgZGF5czogZGF5cywgZW50cmllczogZW50cmllcykKICAgICAgICAgICAgICAgICAgICAjZW5kaWYKCiAgICAgICAgICAgICAgICAgICAgUGlja2VyKCJSYW5nZSIsIHNlbGVjdGlvbjogJHJhbmdlKSB7CiAgICAgICAgICAgICAgICAgICAgICAgIEZvckVhY2goVHJlbmRSYW5nZS5hbGxDYXNlcywgaWQ6IFwuc2VsZikgeyByIGluCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBUZXh0KHIucmF3VmFsdWUpLnRhZyhyKQogICAgICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgIC5waWNrZXJTdHlsZSguc2VnbWVudGVkKQoKICAgICAgICAgICAgICAgICAgICBpZiBuaWdodHNJblJhbmdlLmlzRW1wdHkgJiYgZGF5c0luUmFuZ2UuaXNFbXB0eSB7CiAgICAgICAgICAgICAgICAgICAgICAgIFRleHQoIk5vdCBlbm91Z2ggZGF0YSB5ZXQg4oCUIGNoZWNrIGJhY2sgYWZ0ZXIgYSBmZXcgc3luY2VkIG5pZ2h0cy4iKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvbnQoLnN1YmhlYWRsaW5lKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvcmVncm91bmRTdHlsZSguc2Vjb25kYXJ5KQogICAgICAgICAgICAgICAgICAgICAgICAgICAgLnBhZGRpbmcoLnRvcCwgNDApCiAgICAgICAgICAgICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgICAgICAgICAgICAgSFJWQ2hhcnQobmlnaHRzOiBuaWdodHNJblJhbmdlKQogICAgICAgICAgICAgICAgICAgICAgICBSSFJDaGFydChuaWdodHM6IG5pZ2h0c0luUmFuZ2UpCiAgICAgICAgICAgICAgICAgICAgICAgIFNsZWVwQ2hhcnQobmlnaHRzOiBuaWdodHNJblJhbmdlKQogICAgICAgICAgICAgICAgICAgICAgICBTdHJhaW5DaGFydChkYXlzOiBkYXlzSW5SYW5nZSkKICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAucGFkZGluZygpCiAgICAgICAgICAgIH0KICAgICAgICAgICAgLm5hdmlnYXRpb25UaXRsZSgiVHJlbmRzIikKICAgICAgICB9CiAgICB9Cn0KCi8vIE1BUks6IC0gSFJWIHdpdGggYmFzZWxpbmUgYmFuZAoKLy8vIExuUk1TU0QgbGluZSArIHRoZSBzbWFsbGVzdC13b3J0aHdoaWxlLWNoYW5nZSBiYW5kIChtZWFuIMKxIDAuNSBTRCwKLy8vIFBSRCDCpzUuMykuIERpc3BsYXktb25seSBzdGF0aXN0aWNzIG92ZXIgdGhlIHZpc2libGUgd2luZG93Lgpwcml2YXRlIHN0cnVjdCBIUlZDaGFydDogVmlldyB7CiAgICBsZXQgbmlnaHRzOiBbTmlnaHRTdW1tYXJ5XQoKICAgIHByaXZhdGUgdmFyIGJhbmQ6IChtZWFuOiBEb3VibGUsIGxvOiBEb3VibGUsIGhpOiBEb3VibGUpPyB7CiAgICAgICAgbGV0IHhzID0gbmlnaHRzLm1hcChcLmxuUk1TU0QpCiAgICAgICAgZ3VhcmQgeHMuY291bnQgPj0gMiBlbHNlIHsgcmV0dXJuIG5pbCB9CiAgICAgICAgbGV0IG1lYW4gPSB4cy5yZWR1Y2UoMCwgKykgLyBEb3VibGUoeHMuY291bnQpCiAgICAgICAgbGV0IHZhcmlhbmNlID0geHMubWFwIHsgcG93KCQwIC0gbWVhbiwgMikgfS5yZWR1Y2UoMCwgKykgLyBEb3VibGUoeHMuY291bnQpCiAgICAgICAgbGV0IHNkID0gc3FydCh2YXJpYW5jZSkKICAgICAgICByZXR1cm4gKG1lYW4sIG1lYW4gLSAwLjUgKiBzZCwgbWVhbiArIDAuNSAqIHNkKQogICAgfQoKICAgIHZhciBib2R5OiBzb21lIFZpZXcgewogICAgICAgIENhcmQgewogICAgICAgICAgICBWU3RhY2soYWxpZ25tZW50OiAubGVhZGluZywgc3BhY2luZzogOCkgewogICAgICAgICAgICAgICAgVGV4dCgiSFJWIChMblJNU1NEKSIpCiAgICAgICAgICAgICAgICAgICAgLmZvbnQoLmhlYWRsaW5lKQogICAgICAgICAgICAgICAgQ2hhcnQgewogICAgICAgICAgICAgICAgICAgIGlmIGxldCBiYW5kLCBsZXQgZmlyc3QgPSBuaWdodHMuZmlyc3QsIGxldCBsYXN0ID0gbmlnaHRzLmxhc3QgewogICAgICAgICAgICAgICAgICAgICAgICAvLyBTbWFsbGVzdC13b3J0aHdoaWxlLWNoYW5nZSBiYW5kIGFzIGEgcmVjdGFuZ2xlIHNwYW5uaW5nCiAgICAgICAgICAgICAgICAgICAgICAgIC8vIHRoZSB2aXNpYmxlIGRhdGUgcmFuZ2UuCiAgICAgICAgICAgICAgICAgICAgICAgIFJlY3RhbmdsZU1hcmsoCiAgICAgICAgICAgICAgICAgICAgICAgICAgICB4U3RhcnQ6IC52YWx1ZSgiU3RhcnQiLCBmaXJzdC5uaWdodERhdGUpLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgeEVuZDogLnZhbHVlKCJFbmQiLCBsYXN0Lm5pZ2h0RGF0ZSksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICB5U3RhcnQ6IC52YWx1ZSgiQmFuZCBsb3ciLCBiYW5kLmxvKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgIHlFbmQ6IC52YWx1ZSgiQmFuZCBoaWdoIiwgYmFuZC5oaSkKICAgICAgICAgICAgICAgICAgICAgICAgKQogICAgICAgICAgICAgICAgICAgICAgICAuZm9yZWdyb3VuZFN0eWxlKENvbG9yLmFjY2VudENvbG9yLm9wYWNpdHkoMC4xNSkpCiAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgIEZvckVhY2gobmlnaHRzLCBpZDogXC5pZCkgeyBuaWdodCBpbgogICAgICAgICAgICAgICAgICAgICAgICBMaW5lTWFyaygKICAgICAgICAgICAgICAgICAgICAgICAgICAgIHg6IC52YWx1ZSgiRGF0ZSIsIG5pZ2h0Lm5pZ2h0RGF0ZSksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICB5OiAudmFsdWUoIkxuUk1TU0QiLCBuaWdodC5sblJNU1NEKQogICAgICAgICAgICAgICAgICAgICAgICApCiAgICAgICAgICAgICAgICAgICAgICAgIC5mb3JlZ3JvdW5kU3R5bGUoLnByaW1hcnkpCiAgICAgICAgICAgICAgICAgICAgICAgIFBvaW50TWFyaygKICAgICAgICAgICAgICAgICAgICAgICAgICAgIHg6IC52YWx1ZSgiRGF0ZSIsIG5pZ2h0Lm5pZ2h0RGF0ZSksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICB5OiAudmFsdWUoIkxuUk1TU0QiLCBuaWdodC5sblJNU1NEKQogICAgICAgICAgICAgICAgICAgICAgICApCiAgICAgICAgICAgICAgICAgICAgICAgIC5mb3JlZ3JvdW5kU3R5bGUoLnByaW1hcnkpCiAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgLmZyYW1lKGhlaWdodDogMTgwKQogICAgICAgICAgICAgICAgLmNoYXJ0WEF4aXMoLmhpZGRlbikKICAgICAgICAgICAgfQogICAgICAgIH0KICAgIH0KfQoKLy8gTUFSSzogLSBSZXN0aW5nIEhSCgpwcml2YXRlIHN0cnVjdCBSSFJDaGFydDogVmlldyB7CiAgICBsZXQgbmlnaHRzOiBbTmlnaHRTdW1tYXJ5XQoKICAgIHZhciBib2R5OiBzb21lIFZpZXcgewogICAgICAgIENhcmQgewogICAgICAgICAgICBWU3RhY2soYWxpZ25tZW50OiAubGVhZGluZywgc3BhY2luZzogOCkgewogICAgICAgICAgICAgICAgVGV4dCgiUmVzdGluZyBIUiIpCiAgICAgICAgICAgICAgICAgICAgLmZvbnQoLmhlYWRsaW5lKQogICAgICAgICAgICAgICAgQ2hhcnQobmlnaHRzLCBpZDogXC5pZCkgeyBuaWdodCBpbgogICAgICAgICAgICAgICAgICAgIExpbmVNYXJrKAogICAgICAgICAgICAgICAgICAgICAgICB4OiAudmFsdWUoIkRhdGUiLCBuaWdodC5uaWdodERhdGUpLAogICAgICAgICAgICAgICAgICAgICAgICB5OiAudmFsdWUoIkJQTSIsIG5pZ2h0LnJlc3RpbmdIUikKICAgICAgICAgICAgICAgICAgICApCiAgICAgICAgICAgICAgICAgICAgLmZvcmVncm91bmRTdHlsZSgucHJpbWFyeSkKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIC5mcmFtZShoZWlnaHQ6IDE0MCkKICAgICAgICAgICAgICAgIC5jaGFydFhBeGlzKC5oaWRkZW4pCiAgICAgICAgICAgIH0KICAgICAgICB9CiAgICB9Cn0KCi8vIE1BUks6IC0gU2xlZXAgZHVyYXRpb24gYmFycwoKcHJpdmF0ZSBzdHJ1Y3QgU2xlZXBDaGFydDogVmlldyB7CiAgICBsZXQgbmlnaHRzOiBbTmlnaHRTdW1tYXJ5XQoKICAgIHZhciBib2R5OiBzb21lIFZpZXcgewogICAgICAgIENhcmQgewogICAgICAgICAgICBWU3RhY2soYWxpZ25tZW50OiAubGVhZGluZywgc3BhY2luZzogOCkgewogICAgICAgICAgICAgICAgVGV4dCgiU2xlZXAiKQogICAgICAgICAgICAgICAgICAgIC5mb250KC5oZWFkbGluZSkKICAgICAgICAgICAgICAgIENoYXJ0KG5pZ2h0cywgaWQ6IFwuaWQpIHsgbmlnaHQgaW4KICAgICAgICAgICAgICAgICAgICBCYXJNYXJrKAogICAgICAgICAgICAgICAgICAgICAgICB4OiAudmFsdWUoIkRhdGUiLCBuaWdodC5uaWdodERhdGUpLAogICAgICAgICAgICAgICAgICAgICAgICB5OiAudmFsdWUoIkhvdXJzIiwgbmlnaHQudG90YWxTbGVlcE1pbnV0ZXMgLyA2MCkKICAgICAgICAgICAgICAgICAgICApCiAgICAgICAgICAgICAgICAgICAgLmZvcmVncm91bmRTdHlsZSgucHJpbWFyeS5vcGFjaXR5KDAuOCkpCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAuZnJhbWUoaGVpZ2h0OiAxNDApCiAgICAgICAgICAgICAgICAuY2hhcnRYQXhpcyguaGlkZGVuKQogICAgICAgICAgICB9CiAgICAgICAgfQogICAgfQp9CgovLyBNQVJLOiAtIFN0cmFpbiBiYXJzCgpwcml2YXRlIHN0cnVjdCBTdHJhaW5DaGFydDogVmlldyB7CiAgICBsZXQgZGF5czogW0RheVN1bW1hcnldCgogICAgdmFyIGJvZHk6IHNvbWUgVmlldyB7CiAgICAgICAgQ2FyZCB7CiAgICAgICAgICAgIFZTdGFjayhhbGlnbm1lbnQ6IC5sZWFkaW5nLCBzcGFjaW5nOiA4KSB7CiAgICAgICAgICAgICAgICBUZXh0KCJTdHJhaW4iKQogICAgICAgICAgICAgICAgICAgIC5mb250KC5oZWFkbGluZSkKICAgICAgICAgICAgICAgIENoYXJ0KGRheXMsIGlkOiBcLmlkKSB7IGRheSBpbgogICAgICAgICAgICAgICAgICAgIEJhck1hcmsoCiAgICAgICAgICAgICAgICAgICAgICAgIHg6IC52YWx1ZSgiRGF0ZSIsIGRheS5kYXlEYXRlKSwKICAgICAgICAgICAgICAgICAgICAgICAgeTogLnZhbHVlKCJTdHJhaW4iLCBkYXkuc3RyYWluKQogICAgICAgICAgICAgICAgICAgICkKICAgICAgICAgICAgICAgICAgICAuZm9yZWdyb3VuZFN0eWxlKC5wcmltYXJ5Lm9wYWNpdHkoMC44KSkKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIC5mcmFtZShoZWlnaHQ6IDE0MCkKICAgICAgICAgICAgICAgIC5jaGFydFhBeGlzKC5oaWRkZW4pCiAgICAgICAgICAgICAgICAuY2hhcnRZU2NhbGUoZG9tYWluOiAwLi4uMjEpCiAgICAgICAgICAgIH0KICAgICAgICB9CiAgICB9Cn0KCi8vIE1BUks6IC0gQmVuY2htYXJrIHN0cmlwIChERUJVRyBvbmx5KQoKI2lmIERFQlVHCi8vLyBSZW5kZXJlZCBvbmx5IHdoZW4gcGFpcmVkIGRhdGEgYWN0dWFsbHkgZXhpc3RzLiBDYWxscyB0aGUgcmVhbAovLy8gQmVuY2htYXJrU3RhdHMgQVBJIOKAlCBpbXBsZW1lbnRlZCBieSB0aGUgYW5hbHl0aWNzIHdvcmtzdHJlYW0uCnByaXZhdGUgc3RydWN0IEJlbmNobWFya1N0cmlwOiBWaWV3IHsKICAgIGxldCBuaWdodHM6IFtOaWdodFN1bW1hcnldCiAgICBsZXQgZGF5czogW0RheVN1bW1hcnldCiAgICBsZXQgZW50cmllczogW0JlbmNobWFya0VudHJ5XQoKICAgIHByaXZhdGUgdmFyIHJlY292ZXJ5UGFpcnM6IFsoRG91YmxlLCBEb3VibGUpXSB7CiAgICAgICAgZW50cmllcy5jb21wYWN0TWFwIHsgZW50cnkgaW4KICAgICAgICAgICAgZ3VhcmQgbGV0IG9mZmljaWFsID0gZW50cnkub2ZmaWNpYWxSZWNvdmVyeSwKICAgICAgICAgICAgICAgICAgbGV0IG5pZ2h0ID0gbmlnaHRzLmZpcnN0KHdoZXJlOiB7IENhbGVuZGFyLmN1cnJlbnQuaXNEYXRlKCQwLm5pZ2h0RGF0ZSwgaW5TYW1lRGF5QXM6IGVudHJ5LmVudHJ5RGF0ZSkgfSksCiAgICAgICAgICAgICAgICAgIGxldCBzY29yZSA9IG5pZ2h0LnJlY292ZXJ5U2NvcmUKICAgICAgICAgICAgZWxzZSB7IHJldHVybiBuaWwgfQogICAgICAgICAgICByZXR1cm4gKHNjb3JlLCBvZmZpY2lhbCkKICAgICAgICB9CiAgICB9CgogICAgdmFyIGJvZHk6IHNvbWUgVmlldyB7CiAgICAgICAgaWYgIXJlY292ZXJ5UGFpcnMuaXNFbXB0eSB7CiAgICAgICAgICAgIGxldCBzdGF0cyA9IEJlbmNobWFya1N0YXRzLmFncmVlbWVudCgKICAgICAgICAgICAgICAgIHVud2hvb3A6IHJlY292ZXJ5UGFpcnMubWFwKFwuMCksCiAgICAgICAgICAgICAgICBvZmZpY2lhbDogcmVjb3ZlcnlQYWlycy5tYXAoXC4xKQogICAgICAgICAgICApCiAgICAgICAgICAgIEhTdGFjayhzcGFjaW5nOiA4KSB7CiAgICAgICAgICAgICAgICBJbWFnZShzeXN0ZW1OYW1lOiAiZmxhc2suZmlsbCIpCiAgICAgICAgICAgICAgICAgICAgLmZvcmVncm91bmRTdHlsZShDb2xvci5hY2NlbnRDb2xvcikKICAgICAgICAgICAgICAgIFRleHQoIlJlY292ZXJ5OiBcKHN0YXRzLnN0cmlwTGluZSkiKQogICAgICAgICAgICAgICAgICAgIC5mb250KC5jYXB0aW9uKQogICAgICAgICAgICAgICAgICAgIC5mb3JlZ3JvdW5kU3R5bGUoLnNlY29uZGFyeSkKICAgICAgICAgICAgICAgIFNwYWNlcigpCiAgICAgICAgICAgIH0KICAgICAgICAgICAgLnBhZGRpbmcoMTApCiAgICAgICAgICAgIC5iYWNrZ3JvdW5kKENvbG9yLmFjY2VudENvbG9yLm9wYWNpdHkoMC4xKSwgaW46IFJvdW5kZWRSZWN0YW5nbGUoY29ybmVyUmFkaXVzOiAxMCkpCiAgICAgICAgfQogICAgfQp9CiNlbmRpZgo=
+import SwiftUI
+import SwiftData
+import Charts
+
+// MARK: - TrendsView (PRD §6)
+//
+// Segmented 7D / 30D / 90D. Four charts, FIXED order:
+// HRV with baseline band, Resting HR, Sleep duration (bars), Strain (bars).
+// Charts are monochrome + one accent. Benchmark strip: DEV only, and only
+// when paired data actually exists (PRD §5.6 — no dev UI in prod, no pleading).
+
+private enum TrendRange: String, CaseIterable {
+    case d7 = "7D"
+    case d30 = "30D"
+    case d90 = "90D"
+
+    var days: Int {
+        switch self {
+        case .d7: 7
+        case .d30: 30
+        case .d90: 90
+        }
+    }
+}
+
+struct TrendsView: View {
+    @Query(sort: \NightSummary.nightDate, order: .reverse) private var nights: [NightSummary]
+    @Query(sort: \DaySummary.dayDate, order: .reverse) private var days: [DaySummary]
+    #if DEBUG
+    @Query(sort: \BenchmarkEntry.entryDate, order: .reverse) private var entries: [BenchmarkEntry]
+    #endif
+
+    @State private var range: TrendRange = .d30
+
+    private var nightsInRange: [NightSummary] {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -range.days, to: .now) ?? .distantPast
+        return nights.filter { $0.nightDate >= cutoff }.sorted { $0.nightDate < $1.nightDate }
+    }
+
+    private var daysInRange: [DaySummary] {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -range.days, to: .now) ?? .distantPast
+        return days.filter { $0.dayDate >= cutoff }.sorted { $0.dayDate < $1.dayDate }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 18) {
+                    #if DEBUG
+                    BenchmarkStrip(nights: nights, days: days, entries: entries)
+                    #endif
+
+                    Picker("Range", selection: $range) {
+                        ForEach(TrendRange.allCases, id: \.self) { r in
+                            Text(r.rawValue).tag(r)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if nightsInRange.isEmpty && daysInRange.isEmpty {
+                        Text("Not enough data yet — check back after a few synced nights.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 40)
+                    } else {
+                        HRVChart(nights: nightsInRange)
+                        RHRChart(nights: nightsInRange)
+                        SleepChart(nights: nightsInRange)
+                        StrainChart(days: daysInRange)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Trends")
+        }
+    }
+}
+
+// MARK: - HRV with baseline band
+
+/// LnRMSSD line + the smallest-worthwhile-change band (mean ± 0.5 SD,
+/// PRD §5.3). Display-only statistics over the visible window.
+private struct HRVChart: View {
+    let nights: [NightSummary]
+
+    private var band: (mean: Double, lo: Double, hi: Double)? {
+        let xs = nights.map(\.lnRMSSD)
+        guard xs.count >= 2 else { return nil }
+        let mean = xs.reduce(0, +) / Double(xs.count)
+        let variance = xs.map { pow($0 - mean, 2) }.reduce(0, +) / Double(xs.count)
+        let sd = sqrt(variance)
+        return (mean, mean - 0.5 * sd, mean + 0.5 * sd)
+    }
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("HRV (LnRMSSD)")
+                    .font(.headline)
+                Chart {
+                    if let band, let first = nights.first, let last = nights.last {
+                        // Smallest-worthwhile-change band as a rectangle spanning
+                        // the visible date range.
+                        RectangleMark(
+                            xStart: .value("Start", first.nightDate),
+                            xEnd: .value("End", last.nightDate),
+                            yStart: .value("Band low", band.lo),
+                            yEnd: .value("Band high", band.hi)
+                        )
+                        .foregroundStyle(Color.accentColor.opacity(0.15))
+                    }
+                    ForEach(nights, id: \.id) { night in
+                        LineMark(
+                            x: .value("Date", night.nightDate),
+                            y: .value("LnRMSSD", night.lnRMSSD)
+                        )
+                        .foregroundStyle(.primary)
+                        PointMark(
+                            x: .value("Date", night.nightDate),
+                            y: .value("LnRMSSD", night.lnRMSSD)
+                        )
+                        .foregroundStyle(.primary)
+                    }
+                }
+                .frame(height: 180)
+                .chartXAxis(.hidden)
+            }
+        }
+    }
+}
+
+// MARK: - Resting HR
+
+private struct RHRChart: View {
+    let nights: [NightSummary]
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Resting HR")
+                    .font(.headline)
+                Chart(nights, id: \.id) { night in
+                    LineMark(
+                        x: .value("Date", night.nightDate),
+                        y: .value("BPM", night.restingHR)
+                    )
+                    .foregroundStyle(.primary)
+                }
+                .frame(height: 140)
+                .chartXAxis(.hidden)
+            }
+        }
+    }
+}
+
+// MARK: - Sleep duration bars
+
+private struct SleepChart: View {
+    let nights: [NightSummary]
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Sleep")
+                    .font(.headline)
+                Chart(nights, id: \.id) { night in
+                    BarMark(
+                        x: .value("Date", night.nightDate),
+                        y: .value("Hours", night.totalSleepMinutes / 60)
+                    )
+                    .foregroundStyle(.primary.opacity(0.8))
+                }
+                .frame(height: 140)
+                .chartXAxis(.hidden)
+            }
+        }
+    }
+}
+
+// MARK: - Strain bars
+
+private struct StrainChart: View {
+    let days: [DaySummary]
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Strain")
+                    .font(.headline)
+                Chart(days, id: \.id) { day in
+                    BarMark(
+                        x: .value("Date", day.dayDate),
+                        y: .value("Strain", day.strain)
+                    )
+                    .foregroundStyle(.primary.opacity(0.8))
+                }
+                .frame(height: 140)
+                .chartXAxis(.hidden)
+                .chartYScale(domain: 0...21)
+            }
+        }
+    }
+}
+
+// MARK: - Benchmark strip (DEBUG only)
+
+#if DEBUG
+/// Rendered only when paired data actually exists. Calls the real
+/// BenchmarkStats API — implemented by the analytics workstream.
+private struct BenchmarkStrip: View {
+    let nights: [NightSummary]
+    let days: [DaySummary]
+    let entries: [BenchmarkEntry]
+
+    private var recoveryPairs: [(Double, Double)] {
+        entries.compactMap { entry in
+            guard let official = entry.officialRecovery,
+                  let night = nights.first(where: { Calendar.current.isDate($0.nightDate, inSameDayAs: entry.entryDate) }),
+                  let score = night.recoveryScore
+            else { return nil }
+            return (score, official)
+        }
+    }
+
+    var body: some View {
+        if !recoveryPairs.isEmpty {
+            let stats = BenchmarkStats.agreement(
+                unwhoop: recoveryPairs.map(\.0),
+                official: recoveryPairs.map(\.1)
+            )
+            HStack(spacing: 8) {
+                Image(systemName: "flask.fill")
+                    .foregroundStyle(Color.accentColor)
+                Text("Recovery: \(stats.stripLine)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(10)
+            .background(Color.accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+}
+#endif
