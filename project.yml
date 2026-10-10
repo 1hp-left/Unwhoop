@@ -18,6 +18,14 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     CODE_SIGN_STYLE: Automatic
 
+# Vendored Noop protocol layer (PolyForm Noncommercial 1.0.0 — see
+# Vendor/Noop/LICENSE). Pure Swift + Foundation, no external dependencies.
+# Built as a real Swift package (not raw sources) because WhoopProtocol
+# loads whoop_protocol.json via Bundle.module.
+packages:
+  WhoopProtocol:
+    path: Vendor/Noop/Packages/WhoopProtocol
+
 targets:
   Unwhoop:
     type: application
@@ -27,6 +35,8 @@ targets:
       - path: Unwhoop
         excludes:
           - "Resources/Info.plist"
+    dependencies:
+      - package: WhoopProtocol
     info:
       path: Unwhoop/Resources/Info.plist
     settings:
@@ -37,6 +47,10 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_USER_SCRIPT_SANDBOXING: YES
     # No external dependencies in v1: SwiftData, Swift Charts, CoreBluetooth
-    # and HealthKit are all SDK frameworks. The Noop fork (Vendor/Noop) is
-    # vendored as sources later — see Vendor/Noop/FORK_PLAN.md — and will be
-    # added here as an additional `sources:` path when it lands.
+    # and HealthKit are all SDK frameworks. The Noop protocol package is
+    # vendored at Vendor/Noop/Packages/WhoopProtocol (PolyForm Noncommercial
+    # 1.0.0, pinned e580175) and linked via `packages:` above. The BLE
+    # orchestration lives in our own NoopBandSyncAdapter (Unwhoop/BLE/),
+    # written directly against WhoopProtocol's API — Noop's Strand/BLE app
+    # layer was deliberately NOT vendored (it drags in WhoopStore,
+    # StrandAnalytics and app UI).
