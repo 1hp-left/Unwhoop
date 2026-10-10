@@ -39,7 +39,29 @@ cd /tmp/noop-fork
 git checkout e58017508d9731c51d0631fe0eb4bb1d7ea0c582
 ```
 
-Record the pinned commit here when done: `PINNED: <commit>`
+Record the pinned commit here when done: `PINNED: e58017508d9731c51d0631fe0eb4bb1d7ea0c582`
+
+## 2b. What actually landed (2026-10-10)
+
+The full `Packages/WhoopProtocol/` Swift package was vendored verbatim into
+`Vendor/Noop/Packages/WhoopProtocol/` (Sources, Tests, resources, Package.swift
+unchanged) and linked as a local Swift package in `project.yml`. It is pure
+Swift + Foundation with zero external dependencies, and it is the actual
+protocol moat: CRC16-Modbus framing, CLIENT_HELLO, historical ("puffin")
+streams, and the Whoop 5.0 decoders (R-R, raw IMU, raw optical, PPG HR).
+
+Noop's `Strand/BLE/` app layer (`BLEManager.swift` et al.) was deliberately
+NOT vendored: it is a 7,600-line `ObservableObject` entangled with Noop's
+`WhoopStore`, `StrandAnalytics`, and app UI. The CoreBluetooth orchestration
+(scan/connect/GATT/notify) is instead implemented fresh in
+`Unwhoop/BLE/NoopBandSyncAdapter.swift`, written directly against
+WhoopProtocol's public API. Narrower surface, same protocol facts.
+
+Trim note: upstream's `Tests/` and the three executable targets
+(`whoop-decode`, `whoop-optical-experiment`, `whoop-re`) were dropped from the
+vendored copy — Unwhoop's CI never runs them — and `Package.swift` was trimmed
+to the library target accordingly (the trim is documented in the file itself).
+Everything else is verbatim at the pinned commit.
 
 ## 3. Vendor the needed files
 
