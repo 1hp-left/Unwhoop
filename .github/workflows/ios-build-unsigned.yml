@@ -1,0 +1,65 @@
+name: Build unsigned .ipa (free, no Apple Developer account)
+
+# The $0 path: builds the app on GitHub's free macOS runners WITHOUT any
+# signing. You install the resulting .ipa with SideStore or AltStore, which
+# signs it on your iPhone with your FREE Apple ID (7-day certs, auto-refreshed
+# over WiFi — that's their whole trick). Public repo = unlimited free builds.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build unsigned .ipa
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project Unwhoop.xcodeproj -scheme Unwhoop
+
+      - name: Build for device (unsigned)
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -project Unwhoop.xcodeproj \
+            -scheme Unwhoop \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/derived" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package .ipa
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find "$RUNNER_TEMP/derived/Build/Products/Release-iphoneos" \
+            -maxdepth 1 -name "*.app" | head -1)
+          echo "Packaging: $APP_PATH"
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -R "$APP_PATH" "$RUNNER_TEMP/Payload/"
+          cd "$RUNNER_TEMP"
+          zip -qr Unwhoop-unsigned.ipa Payload
+
+      - name: Upload .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unwhoop-unsigned-ipa
+          path: ${{ runner.temp }}/Unwhoop-unsigned.ipa
+          retention-days: 14
