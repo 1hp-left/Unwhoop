@@ -1,0 +1,42 @@
+# XcodeGen project — generates Unwhoop.xcodeproj via `xcodegen generate`.
+# Follows the same pattern as Noop's own project.yml.
+name: Unwhoop
+
+options:
+  bundleIdPrefix: com.unwhoop
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  developmentLanguage: en
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  Unwhoop:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Unwhoop
+        excludes:
+          - "Resources/Info.plist"
+    info:
+      path: Unwhoop/Resources/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.unwhoop.app
+        INFOPLIST_KEY_LSRequiresIPhoneOS: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+    # No external dependencies in v1: SwiftData, Swift Charts, CoreBluetooth
+    # and HealthKit are all SDK frameworks. The Noop fork (Vendor/Noop) is
+    # vendored as sources later — see Vendor/Noop/FORK_PLAN.md — and will be
+    # added here as an additional `sources:` path when it lands.

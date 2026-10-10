@@ -1,0 +1,30 @@
+# Xcode / XcodeGen
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+build/
+
+# SwiftPM
+.build/
+.swiftpm/
+
+# XcodeGen cache
+# (project.yml is the source of truth; the .xcodeproj is generated)
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Secrets — never commit
+Config/*Secrets*.xcconfig
+*.p12
+*.mobileprovision
