@@ -19,6 +19,15 @@ final class AppSettings {
     // Baseline bookkeeping
     var baselineStartDate: Date?
 
+    // Sleep-score weights, fitted on-device by the dev-only tuner against the
+    // user's WHOOP export (or the shipped defaults until then).
+    var sleepScoreWeightsRaw: [Double]
+
+    var sleepScoreWeights: SleepWeights {
+        get { SleepWeights.from(array: sleepScoreWeightsRaw) }
+        set { sleepScoreWeightsRaw = newValue.normalized.array }
+    }
+
     var temperatureUnit: TemperatureUnit {
         get { TemperatureUnit(rawValue: temperatureUnitRaw) ?? .fahrenheit }
         set { temperatureUnitRaw = newValue.rawValue }
@@ -35,5 +44,6 @@ final class AppSettings {
         self.pairedDeviceUUID = nil
         self.pairingWarningShown = false
         self.baselineStartDate = nil
+        self.sleepScoreWeightsRaw = SleepWeights.default.array
     }
 }

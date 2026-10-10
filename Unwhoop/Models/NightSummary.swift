@@ -33,6 +33,10 @@ final class NightSummary {
     var recoveryBandRaw: String? // RecoveryBand raw value
     var recoveryBasis: String?   // one-line basis, e.g. "LnRMSSD 58ms vs your 54ms baseline"
 
+    // Sleep score (0–100 composite of sufficiency/efficiency/consistency/
+    // restfulness; see SleepScore.swift). Nil until the pipeline computes it.
+    var sleepScore: Double?
+
     // Quality
     var lowConfidence: Bool
     var confidenceReason: String?
@@ -65,6 +69,7 @@ final class NightSummary {
         sleepNeedMinutes: Double = 0,
         recoveryScore: Double? = nil,
         recoveryBasis: String? = nil,
+        sleepScore: Double? = nil,
         lowConfidence: Bool = false,
         confidenceReason: String? = nil
     ) {
@@ -86,6 +91,7 @@ final class NightSummary {
         self.recoveryScore = recoveryScore
         if let recoveryScore { self.recoveryBandRaw = RecoveryBand.band(for: recoveryScore).rawValue }
         self.recoveryBasis = recoveryBasis
+        self.sleepScore = sleepScore
         self.lowConfidence = lowConfidence
         self.confidenceReason = confidenceReason
         self.confounderFlagsRaw = []

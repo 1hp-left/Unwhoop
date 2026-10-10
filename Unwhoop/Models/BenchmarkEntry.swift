@@ -17,6 +17,16 @@ final class BenchmarkEntry {
     var officialStrain: Double?     // WHOOP Day Strain (0–21)
     var officialSleepMinutes: Double? // WHOOP total sleep, minutes
 
+    // Sleep-score tuning inputs (per night, from the export's own fields).
+    // The tuner computes OUR four components from these and fits weights
+    // against officialSleepScore — all on-device.
+    var officialSleepScore: Double? // WHOOP Sleep Performance 0–100
+    var sleepOnset: Date?           // sleep onset (for consistency)
+    var wakeTime: Date?             // wake time (for consistency + time in bed)
+    var timeInBedMinutes: Double?   // for efficiency
+    var rhrBpm: Double?             // for restfulness
+    var hrvMs: Double?              // for restfulness (RMSSD, ms)
+
     init(entryDate: Date, officialRecovery: Double? = nil, officialStrain: Double? = nil, officialSleepMinutes: Double? = nil) {
         self.id = UUID()
         self.entryDate = entryDate

@@ -42,6 +42,8 @@ struct DataView: View {
                     Divider()
                     BenchmarkEntryForm()
                     BenchmarkHistory(entries: entries)
+                    Divider()
+                    SleepScoreTunerPanel(entries: entries, settings: settings)
                 }
                 #endif
 
@@ -337,3 +339,65 @@ private struct SettingsForm: View {
         }
     }
 }
+
+// MARK: - Sleep score tuner (DEBUG only)
+
+#if DEBUG
+/// Fits SleepWeights against the imported WHOOP nights, on-device.
+/// Shows the winning weights + fit quality; "Use these weights" stores them
+/// in AppSettings for the production sleep score.
+private struct SleepScoreTunerPanel: View {
+    let entries: [BenchmarkEntry]
+    var settings: AppSettings?
+    @Environment(\.modelContext) private var modelContext
+    @State private var result: SleepScoreTuner.FitResult?
+    @State private var didRun = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Sleep score tuner")
+                .font(.headline)
+            Text("Fits the sleep-score weights against your imported WHOOP nights, on this phone. Needs 7+ imported nights with sleep scores.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Fit weights") {
+                result = SleepScoreTuner.fit(entries: entries)
+                didRun = true
+            }
+            .buttonStyle(.bordered)
+            if didRun {
+                if let r = result {
+                    let w = r.weights
+                    Text("suff \(w.sufficiency, specifier: "%.2f") · eff \(w.efficiency, specifier: "%.2f") · con \(w.consistency, specifier: "%.2f") · rest \(w.restfulness, specifier: "%.2f")")
+                        .font(.caption)
+                        .monospacedDigit()
+                    Text("RMSE \(r.rmse, specifier: "%.1f") (defaults \(r.defaultRmse, specifier: "%.1f")) · R² \(r.r2, specifier: "%.2f") · bias \(r.bias, specifier: "%+.1f")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                    Text("\(r.nights) nights · vitals on \(Int((r.vitalsCoverage * 100).rounded()))% of nights")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    if r.vitalsCoverage == 0 {
+                        Text("No RHR/HRV in the export — restfulness weight pinned at default.")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    if let s = settings {
+                        Button("Use these weights") {
+                            s.sleepScoreWeights = r.weights
+                            try? modelContext.save()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                } else {
+                    Text("Not enough usable nights yet — import the WHOOP export first.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+#endif

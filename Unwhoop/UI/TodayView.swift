@@ -193,6 +193,12 @@ private struct SleepCard: View {
                         .foregroundStyle(.secondary)
                     Text("Sleep")
                         .font(.headline)
+                    if let score = night.sleepScore {
+                        Text("\(score, specifier: "%.0f")")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .monospacedDigit()
+                    }
                     Spacer()
                     Text("\(Format.hoursMinutes(night.totalSleepMinutes)) · \(Format.percent(night.sleepEfficiency * 100)) efficiency")
                         .font(.subheadline)

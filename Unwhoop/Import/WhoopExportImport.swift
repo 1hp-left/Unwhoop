@@ -155,6 +155,9 @@ enum WhoopExportImporter {
         var updated: Int     // existing entries filled in
         var skipped: Int     // rows with no usable date
         var days: Int { paired + updated }
+        var sleepColumns: [String] = []  // normalized headers seen (debug aid)
+        var cyclesColumns: [String] = []
+        var sleepScoresFound: Int = 0    // nights with an official sleep score
     }
 
     /// Parses picked CSV files (route by filename; header-sniffed fallback)
@@ -181,23 +184,30 @@ enum WhoopExportImporter {
             // Unrecognized files are ignored.
         }
 
-        // Index sleep rows by local day for fallback minutes.
-        var sleepMinByDay: [Date: Double] = [:]
+        // Index full sleep rows by local day (naps skipped). Column names
+        // vary across export versions, so every field below tries several
+        // candidate keys — see the tuner for which ones actually hit.
+        var sleepByDay: [Date: [String: String]] = [:]
+        var sleepCols: [String] = []
         for m in sleeps {
             if m["nap"]?.lowercased() == "true" { continue } // skip naps
+            if sleepCols.isEmpty { sleepCols = m.keys.sorted() }
             let tz = WhoopTime.offsetMinutes(m["cycle_timezone"])
             let onset = WhoopTime.parse(m["sleep_onset"], offsetMinutes: tz)
+                ?? WhoopTime.parse(m["sleep_start"], offsetMinutes: tz)
                 ?? WhoopTime.parse(m["cycle_start_time"], offsetMinutes: tz)
             guard let onset else { continue }
             let day = Calendar.current.startOfDay(for: onset)
-            if let mins = double(m, "asleep_duration_min"),
-               sleepMinByDay[day] == nil {
-                sleepMinByDay[day] = mins
-            }
+            if sleepByDay[day] == nil { sleepByDay[day] = m }
+        }
+        let sleepMinByDay: [Date: Double] = sleepByDay.compactMapValues {
+            double($0, "asleep_duration_min")
         }
 
-        var paired = 0, updated = 0, skipped = 0
+        var paired = 0, updated = 0, skipped = 0, scoresFound = 0
+        var cyclesCols: [String] = []
         for m in cycles {
+            if cyclesCols.isEmpty { cyclesCols = m.keys.sorted() }
             let tz = WhoopTime.offsetMinutes(m["cycle_timezone"])
             guard let start = WhoopTime.parse(m["cycle_start_time"],
                                               offsetMinutes: tz)
@@ -207,7 +217,36 @@ enum WhoopExportImporter {
             let rec = double(m, "recovery_score_pct")
             let str = double(m, "day_strain")
             let slp = double(m, "asleep_duration_min") ?? sleepMinByDay[day]
-            guard rec != nil || str != nil || slp != nil else {
+            let rhr = double(m, "resting_hr", "rhr", "resting_heart_rate",
+                             "avg_resting_hr_bpm")
+            let hrv = double(m, "hrv_rmssd_ms", "hrv", "rmssd",
+                             "avg_hrv_rmssd_ms", "hrv_rmssd")
+            // Sleep-row fields for the same day.
+            let s = sleepByDay[day]
+            let score = s.flatMap {
+                double($0, "score", "sleep_score", "sleep_performance",
+                       "sleep_performance_pct", "sleep_score_pct")
+            }
+            let onset: Date? = s.flatMap {
+                let tz = WhoopTime.offsetMinutes($0["cycle_timezone"])
+                return WhoopTime.parse($0["sleep_onset"], offsetMinutes: tz)
+                    ?? WhoopTime.parse($0["sleep_start"], offsetMinutes: tz)
+            }
+            let wake: Date? = s.flatMap {
+                let tz = WhoopTime.offsetMinutes($0["cycle_timezone"])
+                return WhoopTime.parse($0["wake_onset"], offsetMinutes: tz)
+                    ?? WhoopTime.parse($0["sleep_end"], offsetMinutes: tz)
+                    ?? WhoopTime.parse($0["wake_time"], offsetMinutes: tz)
+                    ?? WhoopTime.parse($0["wake"], offsetMinutes: tz)
+            }
+            var tib = s.flatMap {
+                double($0, "in_bed_duration_min", "time_in_bed_min",
+                       "inbed_duration_min")
+            }
+            if tib == nil, let o = onset, let w = wake, w > o {
+                tib = w.timeIntervalSince(o) / 60
+            }
+            guard rec != nil || str != nil || slp != nil || score != nil else {
                 skipped += 1; continue  // row had a date but no usable scores
             }
             let (entry, isNew) = fetchOrCreate(day: day, context: context)
@@ -221,10 +260,32 @@ enum WhoopExportImporter {
             if let v = slp, entry.officialSleepMinutes == nil {
                 entry.officialSleepMinutes = v; touched = true
             }
+            if let v = score, entry.officialSleepScore == nil {
+                entry.officialSleepScore = v; touched = true; scoresFound += 1
+            }
+            if let o = onset, entry.sleepOnset == nil {
+                entry.sleepOnset = o; touched = true
+            }
+            if let w = wake, entry.wakeTime == nil {
+                entry.wakeTime = w; touched = true
+            }
+            if let v = tib, entry.timeInBedMinutes == nil {
+                entry.timeInBedMinutes = v; touched = true
+            }
+            if let v = rhr, entry.rhrBpm == nil {
+                entry.rhrBpm = v; touched = true
+            }
+            if let v = hrv, entry.hrvMs == nil {
+                entry.hrvMs = v; touched = true
+            }
             if isNew { paired += 1 } else if touched { updated += 1 }
         }
         try? context.save()
-        return Result(paired: paired, updated: updated, skipped: skipped)
+        var result = Result(paired: paired, updated: updated, skipped: skipped)
+        result.sleepColumns = sleepCols
+        result.cyclesColumns = cyclesCols
+        result.sleepScoresFound = scoresFound
+        return result
     }
 
     // MARK: helpers
@@ -296,6 +357,7 @@ struct WhoopImportView: View {
                                                         context: modelContext)
                 for url in urls { url.stopAccessingSecurityScopedResource() }
                 status = "Paired \(r.days) day\(r.days == 1 ? "" : "s")" +
+                    (r.sleepScoresFound > 0 ? ", \(r.sleepScoresFound) with sleep scores" : "") +
                     (r.skipped > 0 ? " (\(r.skipped) rows skipped)" : "") + "."
             case .failure:
                 status = "Import cancelled."

@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 
-from unwhoop import rr, resp, recovery, sleep, strain, benchmark
+from unwhoop import rr, resp, recovery, sleep, sleep_score, strain, benchmark
 
 
 def approx(a, b, tol=1e-2):
@@ -256,6 +256,84 @@ def test_kappa_known():
     approx(benchmark.pabak([[50, 10], [5, 35]]), 0.70, tol=1e-3)
     assert benchmark.kappa_band(0.55) == "moderate"
     assert benchmark.kappa_band(0.65) == "substantial"
+
+
+# ---------- sleep_score.py ----------
+
+def test_sleep_score_perfect_night():
+    # all components 1.0, default weights -> 100
+    approx(sleep_score.sleep_score((1.0, 1.0, 1.0, 1.0)), 100.0)
+
+
+def test_sleep_score_half_components():
+    # all components 0.5 -> 50 regardless of weights (weights sum to 1)
+    approx(sleep_score.sleep_score((0.5, 0.5, 0.5, 0.5)), 50.0)
+    approx(sleep_score.sleep_score((0.5, 0.5, 0.5, 0.5),
+                                   weights=[0.1, 0.2, 0.3, 0.4]), 50.0)
+
+
+def test_sleep_score_weights():
+    # only sufficiency matters here: 0.8 * 100
+    approx(sleep_score.sleep_score((0.8, 0.2, 0.2, 0.2),
+                                   weights=[1, 0, 0, 0]), 80.0)
+
+
+def test_normalize_weights():
+    # (2,1,1,0) -> (0.5,0.25,0.25,0); negatives clipped; all-zero -> default
+    w = sleep_score.normalize_weights([2, 1, 1, 0])
+    approx(w[0], 0.5); approx(w[1], 0.25); approx(w[2], 0.25); approx(w[3], 0.0)
+    w = sleep_score.normalize_weights([-1, 2, 0, 0])
+    approx(w[0], 0.0); approx(w[1], 1.0)
+    assert sleep_score.normalize_weights([0, 0, 0, 0]) == [0.35, 0.25, 0.20, 0.20]
+
+
+def test_sufficiency():
+    # 480/480 -> 1.0; 240/480 -> 0.5; oversleep caps at 1.0 (no extra credit)
+    approx(sleep_score.sufficiency(480, 480), 1.0)
+    approx(sleep_score.sufficiency(240, 480), 0.5)
+    approx(sleep_score.sufficiency(600, 480), 1.0)
+    approx(sleep_score.sufficiency(480, 0), 0.0)
+
+
+def test_efficiency():
+    # 420/480 -> 0.875; over 1.0 clamps
+    approx(sleep_score.efficiency(420, 480), 0.875)
+    approx(sleep_score.efficiency(500, 480), 1.0)
+    approx(sleep_score.efficiency(420, 0), 0.0)
+
+
+def test_consistency():
+    # 0h dev -> 1; 1.5h -> 0.5; >=3h -> 0
+    approx(sleep_score.consistency(0.0), 1.0)
+    approx(sleep_score.consistency(1.5), 0.5)
+    approx(sleep_score.consistency(3.0), 0.0)
+    approx(sleep_score.consistency(5.0), 0.0)
+
+
+def test_restfulness():
+    # rhr 60 vs 55 -> 1-5/12 = 0.5833; hrv 50 vs 50 -> 0.8333; mean = 0.7083
+    approx(sleep_score.restfulness(60, 55, 50, 50), 0.7083)
+    # rhr at/below baseline and hrv above baseline -> 1.0
+    approx(sleep_score.restfulness(52, 55, 60, 50), 1.0)
+    # no baselines -> neutral 0.5
+    approx(sleep_score.restfulness(60, 0, 50, 0), 0.5)
+
+
+def test_sleep_need_minutes():
+    # base only; strain bump +3/min over 12; debt repays 25% capped at 120 min
+    approx(sleep_score.sleep_need_minutes(480, 12, 0), 480.0)
+    approx(sleep_score.sleep_need_minutes(480, 18, 0), 498.0)
+    approx(sleep_score.sleep_need_minutes(480, 12, 60), 495.0)
+    approx(sleep_score.sleep_need_minutes(300, 12, 0), 360.0)   # clamped floor
+    approx(sleep_score.sleep_need_minutes(700, 12, 0), 600.0)   # clamped ceiling
+    approx(sleep_score.sleep_need_minutes(480, 12, 400), 510.0)  # debt capped
+
+
+def test_sleep_debt_minutes():
+    # shortfalls 80 + 0 + 180 = 260; trailing-7 window; floored at 0
+    approx(sleep_score.sleep_debt_minutes([(480, 400), (480, 480), (480, 300)]),
+           260.0)
+    approx(sleep_score.sleep_debt_minutes([(480, 500)]), 0.0)
 
 
 def run_all():
