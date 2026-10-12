@@ -9,17 +9,25 @@ import WhoopProtocol
 // vendored Noop protocol package (Vendor/Noop/Packages/WhoopProtocol —
 // PolyForm Noncommercial 1.0.0, pinned e580175). The package owns every
 // protocol fact (framing, CLIENT_HELLO, puffin commands, 5.0 decoders); this
-// file owns only the GATT state machine: scan → connect → hello → subscribe →
-// backfill → decode → RawSampleBatch.
+// file owns only the GATT state machine: scan → connect → BOND → hello →
+// subscribe → backfill → decode → RawSampleBatch.
 //
-// Session flow (mirrors Noop's verified 5.0 path):
+// Session flow (bond-first, per the official app — verified via APK recon
+// 2026-10-12: the official app bonds via CompanionDeviceManager +
+// plain createBond(), then hello; the strap refuses SMP (0x05) unless it is
+// in pairing mode, i.e. blue flash):
 //   1. Scan for the fd4b0001 service.
 //   2. Connect; discover the fd4b service + standard profiles (HR, battery).
-//   3. Write the static CLIENT_HELLO to fd4b0002 withResponse — this is what
-//      triggers just-works bonding on an unauthenticated link.
-//   4. On the write confirmation, subscribe to the puffin notify chars
-//      (fd4b0003/0004/0005/0007). Subscribing earlier gets the strap to reject
-//      with "insufficient authentication".
+//   3. BOND FIRST: write the static CLIENT_HELLO to fd4b0002 withResponse.
+//      iOS has no createBond() API — touching the encrypted characteristic
+//      makes the OS run pairing itself (system dialog). The write fails
+//      until the bond exists; we sit in .pairing and retry hello until it
+//      succeeds. If the strap refuses the bond (SMP 0x05 — it wasn't in
+//      pairing mode) the link drops and we surface .needsPairingMode with
+//      instructions, instead of failing silently.
+//   4. On the write confirmation (bond established), subscribe to the puffin
+//      notify chars (fd4b0003/0004/0005/0007). Subscribing earlier gets the
+//      strap to reject with "insufficient authentication".
 //   5. requestSync sends SEND_HISTORICAL_DATA (opcode 22, payload [0x00]).
 //      The strap streams HISTORY_START → HISTORICAL_DATA records →
 //      HISTORY_END (one per ~50 records) → HISTORY_COMPLETE.
@@ -94,6 +102,15 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     private var lastBatteryPct: Int?
 
     private static let backfillTimeoutSeconds: TimeInterval = 60
+
+    // Bond-first handshake state. The hello write doubles as the iOS bond
+    // trigger (no createBond() API on iOS — the OS pairs when we touch an
+    // encrypted characteristic). Attempts are bounded: if the strap keeps
+    // refusing, it isn't in pairing mode and retrying is futile.
+    private var helloBondAttempts = 0
+    private var helloRetry: DispatchWorkItem?
+    private static let maxHelloBondAttempts = 6
+    private static let helloRetryDelaySeconds: TimeInterval = 5
 
     override init() {
         super.init()
@@ -185,6 +202,9 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         peripheral = p
         p.delegate = self
         helloAcked = false
+        helloBondAttempts = 0
+        helloRetry?.cancel()
+        helloRetry = nil
         puffinNotify = []
         cmdChar = nil
         connectionState.send(.connecting)
@@ -201,6 +221,9 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         cmdChar = nil
         puffinNotify = []
         helloAcked = false
+        helloBondAttempts = 0
+        helloRetry?.cancel()
+        helloRetry = nil
         syncing = false
         chunk = []
         backfillTimeout?.cancel()
@@ -217,6 +240,51 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         guard let p = peripheral, let c = cmdChar else { return }
         let frame = puffinCommandFrame(cmd: cmd, seq: nextSeq(), payload: payload)
         p.writeValue(Data(frame), for: c, type: withResponse ? .withResponse : .withoutResponse)
+    }
+
+    /// Phase 1 of the session: trigger bonding. iOS has no createBond() API —
+    /// the OS starts pairing on its own when we touch an encrypted
+    /// characteristic, presenting the system pairing dialog. The CLIENT_HELLO
+    /// write is that touch: until the bond exists the write fails, and each
+    /// failure keeps us in the pairing phase (see didWriteValueFor).
+    private func writeHello() {
+        guard let p = peripheral, let c = cmdChar,
+              !DeviceFamily.whoop5ClientHello.isEmpty else { return }
+        p.writeValue(Data(DeviceFamily.whoop5ClientHello), for: c, type: .withResponse)
+    }
+
+    private func scheduleHelloRetry() {
+        helloRetry?.cancel()
+        let attempt = DispatchWorkItem { [weak self] in
+            self?.retryHelloBond()
+        }
+        helloRetry = attempt
+        bleQueue.asyncAfter(deadline: .now() + Self.helloRetryDelaySeconds, execute: attempt)
+    }
+
+    private func retryHelloBond() {
+        guard peripheral != nil, cmdChar != nil else { return }
+        guard helloBondAttempts < Self.maxHelloBondAttempts else {
+            // The strap never accepted the bond. Per the official app's
+            // behavior (APK recon 2026-10-12), the strap only bonds while in
+            // pairing mode (blue flash) — further retries are futile.
+            enterNeedsPairingMode()
+            return
+        }
+        writeHello()
+    }
+
+    /// The strap refused the bond (SMP 0x05) or the link died mid-pairing:
+    /// tell the user to put the strap in pairing mode instead of failing
+    /// silently. Never auto-retry from here — the fix is physical.
+    private func enterNeedsPairingMode() {
+        helloRetry?.cancel()
+        helloRetry = nil
+        if let p = peripheral {
+            central.cancelPeripheralConnection(p)
+        }
+        resetSession()
+        connectionState.send(.needsPairingMode)
     }
 
     private func beginBackfill() {
@@ -401,6 +469,14 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
         // than lose it; unacked records re-stream on the next sync.
         if syncing {
             finishSync(completed: false)
+        } else if connectionState.value == .pairing {
+            // Link dropped mid-pairing: the strap refused the bond (SMP
+            // 0x05). Per the official app, the strap only accepts bonds in
+            // pairing mode (blue flash) — say so instead of failing silently.
+            helloRetry?.cancel()
+            helloRetry = nil
+            resetSession()
+            connectionState.send(.needsPairingMode)
         } else {
             resetSession()
             connectionState.send(.disconnected)
@@ -458,13 +534,10 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
             let uuid = c.uuid.uuidString.lowercased()
             if uuid == cmdUUID {
                 cmdChar = c
-                // The session starts here: static CLIENT_HELLO, written WITH
-                // response so CoreBluetooth runs just-works bonding when the
-                // link needs authenticating. The write confirmation is what
-                // marks the link established.
-                if !DeviceFamily.whoop5ClientHello.isEmpty {
-                    peripheral.writeValue(Data(DeviceFamily.whoop5ClientHello), for: c, type: .withResponse)
-                }
+                // Bond-first: the hello write doubles as the iOS bond trigger
+                // (no createBond() on iOS — the OS pairs when we touch the
+                // encrypted characteristic). See writeHello().
+                writeHello()
             } else if notifyUUIDs.contains(uuid) {
                 // Retained but NOT subscribed yet — on an unauthenticated link
                 // the strap rejects these, which can wedge the bond. The
@@ -486,11 +559,18 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
         let cmdUUID = Whoop5Gatt.cmdWrite
         guard characteristic.uuid.uuidString.lowercased() == cmdUUID else { return }
         if error != nil {
-            // Hello refused (commonly: strap still bonded to the official
-            // WHOOP app, or a stale iOS pairing). Surface honestly; the fix
-            // is on the strap side (pairing mode / forget device), not retries.
-            resetSession()
-            connectionState.send(.outOfRange)
+            // Post-hello command failures aren't bonding issues — leave them
+            // to the backfill timeout / disconnect handlers.
+            guard !helloAcked else { return }
+            // Hello is always the first encrypted operation, so any failure
+            // here means the link isn't bonded yet. Per the official app's
+            // flow (bond FIRST, then hello — APK recon 2026-10-12), don't
+            // give up: enter the pairing phase and retry. iOS presents the
+            // system pairing dialog for the failed encrypted write; each
+            // retry re-attempts hello until the bond completes.
+            helloBondAttempts += 1
+            connectionState.send(.pairing)
+            scheduleHelloRetry()
             return
         }
         // Hello acknowledged: the link is up. Persist the band for

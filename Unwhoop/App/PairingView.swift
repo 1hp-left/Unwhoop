@@ -32,6 +32,17 @@ struct PairingView: View {
                     Text("Connecting to \(device.name)…")
                         .foregroundStyle(.secondary)
                 }
+            case .pairing:
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("Pairing…")
+                    Text("If your iPhone shows a Bluetooth pairing request, tap Pair to finish.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            case .needsPairingMode:
+                PairingNeedsPairingMode(onRetry: startScan)
             case .failed(let reason):
                 PairingFailed(reason: reason, onRetry: startScan)
             }
@@ -58,7 +69,8 @@ struct PairingView: View {
         appState.sync.connectionState
             .receive(on: DispatchQueue.main)
             .sink { state in
-                if state == .connected {
+                switch state {
+                case .connected:
                     // Pairing succeeded: record, warn once, done.
                     if let settings, !settings.pairingWarningShown {
                         settings.pairingWarningShown = true
@@ -66,6 +78,12 @@ struct PairingView: View {
                     } else {
                         dismiss()
                     }
+                case .pairing:
+                    appState.pairingPhase = .pairing
+                case .needsPairingMode:
+                    appState.pairingPhase = .needsPairingMode
+                default:
+                    break
                 }
             }
             .store(in: &cancellables)
@@ -94,7 +112,7 @@ private struct PairingIdle: View {
             Image(systemName: "bluetooth")
                 .font(.system(size: 56))
                 .foregroundStyle(.secondary)
-            Text("Put your WHOOP 5.0 nearby. Make sure it's charged and NOT connected to the WHOOP app.")
+            Text("Put your strap in pairing mode first — tap it (or slide it on the charger) until the light flashes blue. Then keep it nearby and charged, and make sure it's NOT connected to the WHOOP app.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
             Button("Start scanning", action: onStart)
@@ -156,6 +174,27 @@ private struct PairingFailed: View {
             if let url = URL(string: UIApplication.openSettingsURLString) {
                 Link("Open Settings (check Bluetooth)", destination: url)
             }
+            Button("Try again", action: onRetry)
+                .buttonStyle(.borderedProminent)
+        }
+        .padding(.top, 60)
+    }
+}
+
+private struct PairingNeedsPairingMode: View {
+    let onRetry: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(.yellow)
+            Text("Strap needs pairing mode")
+                .font(.headline)
+            Text("Your WHOOP refused pairing. Put the strap in pairing mode — tap it (or slide it on the charger) until the light flashes blue — then try again.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
             Button("Try again", action: onRetry)
                 .buttonStyle(.borderedProminent)
         }

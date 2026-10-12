@@ -11,6 +11,8 @@ enum ConnectionState: String, Sendable {
     case disconnected
     case scanning
     case connecting
+    case pairing
+    case needsPairingMode
     case connected
     case syncing
     case outOfRange
@@ -21,6 +23,8 @@ enum ConnectionState: String, Sendable {
         case .disconnected: "Disconnected"
         case .scanning: "Scanning…"
         case .connecting: "Connecting…"
+        case .pairing: "Pairing…"
+        case .needsPairingMode: "Pairing mode needed"
         case .connected: "Connected"
         case .syncing: "Syncing…"
         case .outOfRange: "Out of range"

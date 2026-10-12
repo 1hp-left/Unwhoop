@@ -41,5 +41,7 @@ enum PairingPhase: Equatable {
     case requestingPermission
     case scanning
     case connecting(BandDevice)
+    case pairing
+    case needsPairingMode
     case failed(String)
 }
