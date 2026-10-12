@@ -40,6 +40,11 @@ struct PairingView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+                    Button("Cancel") {
+                        appState.sync.disconnect()
+                        appState.pairingPhase = .idle
+                    }
+                    .buttonStyle(.bordered)
                 }
             case .needsPairingMode:
                 PairingNeedsPairingMode(onRetry: startScan)

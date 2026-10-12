@@ -130,6 +130,10 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         bleQueue.async { [weak self] in
             guard let self else { return }
             self.scanRequested = true
+            // Fresh scan, fresh list — drop stale sightings so a band that
+            // walked away can't be tapped from a previous scan.
+            self.seen.removeAll()
+            self.discoveredBands.send([])
             guard self.central.state == .poweredOn else { return }
             self.connectionState.send(.scanning)
             self.central.scanForPeripherals(
@@ -473,10 +477,7 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
             // Link dropped mid-pairing: the strap refused the bond (SMP
             // 0x05). Per the official app, the strap only accepts bonds in
             // pairing mode (blue flash) — say so instead of failing silently.
-            helloRetry?.cancel()
-            helloRetry = nil
-            resetSession()
-            connectionState.send(.needsPairingMode)
+            enterNeedsPairingMode()
         } else {
             resetSession()
             connectionState.send(.disconnected)
