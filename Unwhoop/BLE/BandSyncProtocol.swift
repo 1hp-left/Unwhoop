@@ -17,6 +17,7 @@ enum ConnectionState: String, Sendable {
     case syncing
     case outOfRange
     case lowBattery
+    case invalidInstallation
 
     var label: String {
         switch self {
@@ -29,6 +30,7 @@ enum ConnectionState: String, Sendable {
         case .syncing: "Syncing…"
         case .outOfRange: "Out of range"
         case .lowBattery: "Band battery low"
+        case .invalidInstallation: "Reinstall required: Bluetooth permission text missing"
         }
     }
 }

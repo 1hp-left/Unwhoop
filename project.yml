@@ -13,8 +13,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.0.2"
+    CURRENT_PROJECT_VERSION: "3"
     SWIFT_STRICT_CONCURRENCY: complete
     CODE_SIGN_STYLE: Automatic
 
@@ -37,22 +37,15 @@ targets:
           - "Resources/Info.plist"
     dependencies:
       - package: WhoopProtocol
-    info:
-      path: Unwhoop/Resources/Info.plist
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.unwhoop.app
+        # Use the checked-in plist. info.path generates a NEW plist and
+        # overwrites this file, dropping every key absent from properties.
+        INFOPLIST_FILE: Unwhoop/Resources/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_KEY_LSRequiresIPhoneOS: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        # Belt-and-suspenders: inject the privacy usage descriptions via build
-        # settings too, so they are guaranteed present in the built Info.plist
-        # even if the info.path wiring above ever breaks. (2026-10-12: a
-        # sideloaded build crashed on launch with the CBCentralManager
-        # "missing NSBluetoothAlwaysUsageDescription" assertion — the key
-        # exists in Unwhoop/Resources/Info.plist but was absent from the
-        # installed app.)
-        INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Unwhoop uses Bluetooth to connect to your WHOOP 5.0 band and sync your sensor data (heart rate, motion, skin temperature). All processing happens on this phone — nothing is uploaded anywhere."
-        INFOPLIST_KEY_NSHealthUpdateUsageDescription: "Unwhoop can write your heart rate, respiratory rate, and sleep to Apple Health when you turn on the HealthKit toggle in the Data tab. It never reads your health data."
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_USER_SCRIPT_SANDBOXING: YES
     # No external dependencies in v1: SwiftData, Swift Charts, CoreBluetooth

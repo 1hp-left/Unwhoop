@@ -113,15 +113,15 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     private static let helloRetryDelaySeconds: TimeInterval = 5
 
     override init() {
-        // iOS kills the app inside CBCentralManager.init (SIGABRT) if the
-        // installed Info.plist lacks NSBluetoothAlwaysUsageDescription.
-        // Re-signing tools rewrite the plist when they change the bundle ID
-        // and some drop keys doing it — fail here naming the cause instead
-        // of the obscure CoreBluetooth assertion.
-        guard Bundle.main.object(forInfoDictionaryKey: "NSBluetoothAlwaysUsageDescription") != nil else {
-            fatalError("Unwhoop: installed Info.plist is missing NSBluetoothAlwaysUsageDescription — the IPA was re-signed incorrectly (the Bluetooth permission text was dropped). Reinstall with Sideloadly.")
-        }
         super.init()
+        // Do not construct CoreBluetooth without its required privacy text.
+        // A malformed installation must leave the app usable for exports,
+        // rather than trap during AppState initialization.
+        guard let usage = Bundle.main.object(forInfoDictionaryKey: "NSBluetoothAlwaysUsageDescription") as? String,
+              !usage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            connectionState.send(.invalidInstallation)
+            return
+        }
         central = CBCentralManager(
             delegate: self,
             queue: bleQueue,
@@ -136,7 +136,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
 
     func startScan() {
         bleQueue.async { [weak self] in
-            guard let self else { return }
+            guard let self, self.central != nil else { return }
             self.scanRequested = true
             // Fresh scan, fresh list — drop stale sightings so a band that
             // walked away can't be tapped from a previous scan.
@@ -153,7 +153,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
 
     func stopScan() {
         bleQueue.async { [weak self] in
-            guard let self else { return }
+            guard let self, self.central != nil else { return }
             self.scanRequested = false
             self.central.stopScan()
             if self.connectionState.value == .scanning {
@@ -164,7 +164,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
 
     func connect(to device: BandDevice) {
         bleQueue.async { [weak self] in
-            guard let self else { return }
+            guard let self, self.central != nil else { return }
             self.stopScanOnQueue()
             guard let entry = self.seen[device.id] else { return }
             self.beginConnect(entry.peripheral)
@@ -173,7 +173,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
 
     func disconnect() {
         bleQueue.async { [weak self] in
-            guard let self else { return }
+            guard let self, self.central != nil else { return }
             self.wantSyncOnHello = false
             if let p = self.peripheral {
                 self.central.cancelPeripheralConnection(p)
@@ -188,7 +188,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     /// (PRD §7 battery budget).
     func requestSync() {
         bleQueue.async { [weak self] in
-            guard let self else { return }
+            guard let self, self.central != nil else { return }
             if self.syncing { return }
             if let p = self.peripheral, p.state == .connected, self.helloAcked {
                 self.beginBackfill()
