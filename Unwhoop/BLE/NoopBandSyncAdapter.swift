@@ -113,6 +113,14 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     private static let helloRetryDelaySeconds: TimeInterval = 5
 
     override init() {
+        // iOS kills the app inside CBCentralManager.init (SIGABRT) if the
+        // installed Info.plist lacks NSBluetoothAlwaysUsageDescription.
+        // Re-signing tools rewrite the plist when they change the bundle ID
+        // and some drop keys doing it — fail here naming the cause instead
+        // of the obscure CoreBluetooth assertion.
+        guard Bundle.main.object(forInfoDictionaryKey: "NSBluetoothAlwaysUsageDescription") != nil else {
+            fatalError("Unwhoop: installed Info.plist is missing NSBluetoothAlwaysUsageDescription — the IPA was re-signed incorrectly (the Bluetooth permission text was dropped). Reinstall with Sideloadly.")
+        }
         super.init()
         central = CBCentralManager(
             delegate: self,
