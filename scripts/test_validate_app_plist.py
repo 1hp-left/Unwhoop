@@ -20,6 +20,15 @@ class MetadataTests(unittest.TestCase):
     def test_valid_metadata(self):
         validate(self.built, self.source, "1.0.2", "3")
 
+    def test_reordered_capabilities_allowed(self):
+        self.built["UIRequiredDeviceCapabilities"].reverse()
+        validate(self.built, self.source, "1.0.2", "3")
+
+    def test_bluetooth_capability_dropped_rejected(self):
+        self.built["UIRequiredDeviceCapabilities"] = ["arm64"]
+        with self.assertRaisesRegex(ValueError, "UIRequiredDeviceCapabilities"):
+            validate(self.built, self.source, "1.0.2", "3")
+
     def test_missing_bluetooth_text_rejected(self):
         del self.built["NSBluetoothAlwaysUsageDescription"]
         with self.assertRaisesRegex(ValueError, "NSBluetoothAlwaysUsageDescription"):

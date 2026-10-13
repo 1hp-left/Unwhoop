@@ -26,10 +26,14 @@ def validate(plist, source, version, build):
     for key in (
         "NSBluetoothAlwaysUsageDescription", "NSHealthUpdateUsageDescription",
         "UIBackgroundModes", "UISupportedInterfaceOrientations",
-        "UIRequiredDeviceCapabilities", "UILaunchScreen", "LSRequiresIPhoneOS",
+        "UILaunchScreen", "LSRequiresIPhoneOS",
     ):
         if key not in plist or plist[key] != source[key]:
-            raise ValueError(f"Missing or changed {key}")
+            raise ValueError(f"Missing or changed {key}: {plist.get(key)!r}")
+    # Xcode may reorder capabilities while processing the plist.
+    capabilities = plist.get("UIRequiredDeviceCapabilities")
+    if not isinstance(capabilities, list) or set(capabilities) != set(source["UIRequiredDeviceCapabilities"]):
+        raise ValueError(f"Missing or changed UIRequiredDeviceCapabilities: {capabilities!r}")
     for key in ("NSBluetoothAlwaysUsageDescription", "NSHealthUpdateUsageDescription"):
         if not isinstance(plist[key], str) or not plist[key].strip():
             raise ValueError(f"Empty privacy description: {key}")
