@@ -13,8 +13,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MARKETING_VERSION: "1.0.2"
-    CURRENT_PROJECT_VERSION: "3"
+    MARKETING_VERSION: "1.0.3"
+    CURRENT_PROJECT_VERSION: "4"
     SWIFT_STRICT_CONCURRENCY: complete
     CODE_SIGN_STYLE: Automatic
 
@@ -56,3 +56,22 @@ targets:
     # written directly against WhoopProtocol's API — Noop's Strand/BLE app
     # layer was deliberately NOT vendored (it drags in WhoopStore,
     # StrandAnalytics and app UI).
+
+  UnwhoopTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [UnwhoopTests]
+    dependencies:
+      - target: Unwhoop
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Unwhoop:
+    build:
+      targets:
+        Unwhoop: all
+        UnwhoopTests: [test]
+    test:
+      targets: [UnwhoopTests]
