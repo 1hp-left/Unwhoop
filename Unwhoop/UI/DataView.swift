@@ -57,7 +57,7 @@ struct DataView: View {
 
                 Section("About") {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Unwhoop 1.0 (1)")
+                        Text("Unwhoop \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"))")
                             .font(.subheadline)
                         Text("Not a medical device. Scores are estimates from published methods, not clinical measurements.")
                             .font(.caption)
@@ -116,7 +116,7 @@ private struct BandCard: View {
                     Label("Sync now", systemImage: "arrow.triangle.2.circlepath")
                 }
                 .buttonStyle(.bordered)
-                .disabled(connection == .syncing)
+                .disabled(connection == .syncing || connection == .invalidInstallation)
             }
             // Reinstall honesty (PRD §9): baseline rebuilds from zero; export first.
             Text("If you delete the app, the baseline rebuilds from zero. Export before deleting.")

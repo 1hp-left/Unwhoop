@@ -87,6 +87,8 @@ struct PairingView: View {
                     appState.pairingPhase = .pairing
                 case .needsPairingMode:
                     appState.pairingPhase = .needsPairingMode
+                case .invalidInstallation:
+                    appState.pairingPhase = .failed("This installation is missing its Bluetooth permission text. Install the latest Unwhoop IPA over this app to keep your data.")
                 default:
                     break
                 }
@@ -95,6 +97,10 @@ struct PairingView: View {
     }
 
     private func startScan() {
+        guard appState.sync.connectionState.value != .invalidInstallation else {
+            appState.pairingPhase = .failed("This installation is missing its Bluetooth permission text. Install the latest Unwhoop IPA over this app to keep your data.")
+            return
+        }
         appState.pairingPhase = .requestingPermission
         appState.sync.startScan()
         appState.pairingPhase = .scanning
