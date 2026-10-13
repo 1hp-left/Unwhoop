@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import Observation
+import Combine
 
 // MARK: - AppState
 
@@ -20,15 +21,39 @@ final class AppState {
     var showPairingWarning = false
     private(set) var pairingDevice: BandDevice?
     private(set) var pairingHandshakeComplete = false
+    private(set) var syncStatus: SyncProgress = .idle
+    private(set) var latestRawExport: URL?
+    @ObservationIgnored private var persistenceContext: ModelContext?
+    @ObservationIgnored private var subscriptions = Set<AnyCancellable>()
+    @ObservationIgnored private let rawStore: RawSyncStore
 
-    init(sync: any BandSyncProtocol = NoopBandSyncAdapter()) {
+    init(sync: any BandSyncProtocol = NoopBandSyncAdapter(), rawStore: RawSyncStore = RawSyncStore()) {
         self.sync = sync
-        // Wire sync batches to persistence. Scoring hooks in here once the
-        // analytics workstream lands — today we only record link health.
-        // (Calling the analytics stubs from a live path would trap.)
+        self.rawStore = rawStore
+        sync.syncProgress
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.syncStatus = $0 }
+            .store(in: &subscriptions)
         sync.onBatch = { [weak self] batch in
             self?.handleBatch(batch)
         }
+    }
+
+    func configurePersistence(_ context: ModelContext) {
+        persistenceContext = context
+        if latestRawExport == nil,
+           let files = try? FileManager.default.contentsOfDirectory(at: rawStore.directory, includingPropertiesForKeys: [.contentModificationDateKey]) {
+            latestRawExport = files.filter { $0.pathExtension == "json" }.sorted {
+                ((try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast)
+                    > ((try? $1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast)
+            }.first
+        }
+    }
+
+    func requestSync() {
+        guard !syncStatus.isBusy else { return }
+        syncStatus = .connecting
+        sync.requestSync()
     }
 
     func beginPairing(to device: BandDevice) {
@@ -76,9 +101,36 @@ final class AppState {
     }
 
     private func handleBatch(_ batch: RawSampleBatch) {
-        // TODO(pipeline): hand batch to ingestion -> analytics (milestone 1+).
-        // For now: nothing persists raw samples yet; SyncState.lastSync is
-        // updated by the view layer after requestSync completes.
+        // The adapter calls on its BLE queue. Save raw data there, and use
+        // the UI's ModelContext only on the main queue.
+        let result: Result<(url: URL, samples: Int), Error>
+        do { result = .success(try rawStore.save(batch)) }
+        catch { result = .failure(error) }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            do {
+                let saved = try result.get()
+                self.latestRawExport = saved.url
+                guard let context = self.persistenceContext else {
+                    self.syncStatus = .failed("Received data was saved, but sync settings are unavailable. Reopen the app.")
+                    return
+                }
+                let link = try context.fetch(FetchDescriptor<SyncState>()).first ?? SyncState()
+                if link.modelContext == nil { context.insert(link) }
+                link.lastSampleCount = saved.samples
+                link.batteryPercent = batch.batteryPercent ?? link.batteryPercent
+                if batch.isComplete { link.lastSync = .now }
+                let outcome = SyncProgress.completed(samples: saved.samples, complete: batch.isComplete)
+                link.lastSyncMessage = outcome.label
+                do { try context.save() } catch {
+                    context.rollback()
+                    throw error
+                }
+                self.syncStatus = outcome
+            } catch {
+                self.syncStatus = .failed("Could not save sync: \(error.localizedDescription). Please try again.")
+            }
+        }
     }
 }
 

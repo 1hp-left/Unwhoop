@@ -72,6 +72,8 @@ struct TrendsView: View {
                 .padding()
             }
             .navigationTitle("Trends")
+            .background(AppTheme.background)
+            .toolbarBackground(AppTheme.background, for: .navigationBar)
         }
     }
 }

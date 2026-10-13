@@ -39,6 +39,7 @@ struct UnwhoopApp: App {
                 .environment(appState)
                 .modelContainer(container)
                 .preferredColorScheme(.dark) // dark-first (PRD §6)
+                .tint(AppTheme.strain)
         }
     }
 }
@@ -63,6 +64,7 @@ struct RootView: View {
             }
         }
         .onAppear {
+            appState.configurePersistence(modelContext)
             if settingsRows.isEmpty {
                 modelContext.insert(AppSettings())
             }
@@ -77,11 +79,13 @@ struct MainTabs: View {
     var body: some View {
         TabView {
             TodayView()
-                .tabItem { Label("Today", systemImage: "sun.max.fill") }
+                .tabItem { Label("Home", systemImage: "house.fill") }
             TrendsView()
                 .tabItem { Label("Trends", systemImage: "chart.line.uptrend.xyaxis") }
             DataView()
                 .tabItem { Label("Data", systemImage: "externaldrive.fill") }
         }
+        .toolbarBackground(AppTheme.background, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
     }
 }

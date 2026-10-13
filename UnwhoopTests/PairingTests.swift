@@ -4,6 +4,7 @@ import Combine
 @testable import Unwhoop
 
 private final class FakeBandSync: BandSyncProtocol {
+    let syncProgress = CurrentValueSubject<SyncProgress, Never>(.idle)
     let connectionState = CurrentValueSubject<ConnectionState, Never>(.connected)
     let discoveredBands = CurrentValueSubject<[BandDevice], Never>([])
     var onBatch: ((RawSampleBatch) -> Void)?

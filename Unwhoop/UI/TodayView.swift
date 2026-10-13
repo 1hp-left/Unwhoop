@@ -30,30 +30,78 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 14) {
-                    StaleBanner(lastSync: lastSync)
+                VStack(alignment: .leading, spacing: 24) {
+                    HStack {
+                        Text("UNWHOOP").font(.system(size: 27, weight: .heavy)).tracking(0.8)
+                        Spacer()
+                        Label(syncRows.first?.batteryPercent.map { "\($0)%" } ?? "Band", systemImage: "battery.75")
+                            .font(.caption.bold()).foregroundStyle(AppTheme.muted)
+                            .padding(.horizontal, 10).padding(.vertical, 7)
+                            .background(AppTheme.surface, in: Capsule())
+                    }
+                    VStack(spacing: 6) {
+                        Text("TODAY").font(.system(size: 12, weight: .bold)).tracking(1.5)
+                        Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                            .font(.caption).foregroundStyle(AppTheme.muted)
+                    }.frame(maxWidth: .infinity)
 
-                    if nights.count < 7 {
-                        BaselineCountdown(nightsSoFar: nights.count)
-                    } else if let night = latestNight {
-                        RecoveryCard(night: night)
-                        VitalsRow(night: night, unit: unit,
-                                  hrvBaseline: recentMean(\.lnRMSSD),
-                                  rhrBaseline: recentMean(\.restingHR))
+                    HStack(spacing: 8) {
+                        MetricDial(title: "Sleep", value: latestNight?.sleepScore, maximum: 100, color: AppTheme.sleep, percent: true)
+                        MetricDial(title: "Recovery", value: nights.count >= 7 ? latestNight?.recoveryScore : nil, maximum: 100,
+                                   color: latestNight?.recoveryBand.map { Color.recoveryBand($0) } ?? AppTheme.recovery, percent: true)
+                        MetricDial(title: "Strain", value: today?.strain, maximum: 21, color: AppTheme.strain, percent: false)
+                    }.padding(.vertical, 8)
+
+                    Card {
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack {
+                                Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(AppTheme.strain)
+                                Text("Band sync").font(.headline)
+                                Spacer()
+                                if appState.syncStatus.isBusy { ProgressView().controlSize(.small) }
+                            }
+                            Text(appState.syncStatus.label ?? syncRows.first?.lastSyncMessage ?? "Your band is paired. Sync to download its stored sensor data.")
+                                .font(.subheadline).foregroundStyle(AppTheme.muted)
+                            Button(action: appState.requestSync) {
+                                Text(appState.syncStatus.isBusy ? "Syncing…" : "Sync now")
+                                    .font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.vertical, 12)
+                                    .foregroundStyle(appState.syncStatus.isBusy ? AppTheme.muted : AppTheme.background)
+                                    .background(appState.syncStatus.isBusy ? AppTheme.inset : .white, in: RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(appState.syncStatus.isBusy)
+                        }
+                    }
+
+                    DashboardHeading(title: "Health Monitor", subtitle: latestNight == nil ? "Waiting for overnight metrics" : "Your overnight vitals")
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                        VitalTile(icon: "heart.fill", title: "HRV", value: latestNight.map { String(format: "%.0f ms", exp($0.lnRMSSD)) } ?? "—", delta: nil, deltaUnit: "")
+                        VitalTile(icon: "waveform.path.ecg", title: "Resting heart rate", value: latestNight.map { String(format: "%.0f bpm", $0.restingHR) } ?? "—", delta: nil, deltaUnit: "")
+                        VitalTile(icon: "lungs.fill", title: "Respiratory rate", value: latestNight?.respiratoryRate.map { String(format: "%.1f /min", $0) } ?? "—", delta: nil, deltaUnit: "")
+                        VitalTile(icon: "thermometer", title: "Skin temperature", value: latestNight?.skinTempDeviation.map { unit.format(celsius: $0) } ?? "—", delta: nil, deltaUnit: "")
+                    }
+                    if !nights.isEmpty && nights.count < 7 { BaselineCountdown(nightsSoFar: nights.count) }
+                    DashboardHeading(title: "My Day", subtitle: "Sleep, recovery & activity")
+                    if let night = latestNight {
+                        if nights.count >= 7 { RecoveryCard(night: night) }
                         SleepCard(night: night)
                     }
-
-                    if let today {
-                        StrainCard(day: today)
+                    if let today { StrainCard(day: today) }
+                    if latestNight == nil && today == nil {
+                        Card {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("No daily summaries yet", systemImage: "waveform.path.ecg").font(.headline)
+                                Text("Downloaded sensor data is saved on your phone. Daily scores are unavailable in this build. You can export the latest raw sync from Data.")
+                                    .font(.caption).foregroundStyle(AppTheme.muted)
+                            }
+                        }
                     }
-
-                    if nights.isEmpty && days.isEmpty {
-                        EmptyToday(onSync: { appState.sync.requestSync() })
-                    }
+                    if lastSync != nil { StaleBanner(lastSync: lastSync) }
                 }
-                .padding()
+                .padding(20)
             }
-            .navigationTitle(Date.now.formatted(date: .abbreviated, time: .omitted))
+            .background(AppTheme.background)
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 }
@@ -167,7 +215,7 @@ private struct VitalsRow: View {
             VitalTile(icon: "heart.fill", title: "HRV",
                       value: String(format: "%.0f ms", exp(night.lnRMSSD)),
                       delta: hrvBaseline.map { exp(night.lnRMSSD) - exp($0) }, deltaUnit: " ms")
-            VitalTile(icon: "heart.pulse", title: "Resting HR",
+            VitalTile(icon: "waveform.path.ecg", title: "Resting HR",
                       value: String(format: "%.0f bpm", night.restingHR),
                       delta: rhrBaseline.map { night.restingHR - $0 }, deltaUnit: " bpm")
             VitalTile(icon: "lungs.fill", title: "Resp. rate",
@@ -243,7 +291,7 @@ private struct StrainCard: View {
                         .frame(width: 72, height: 72)
                     Circle()
                         .trim(from: 0, to: 0.75 * min(day.strain / 21, 1))
-                        .stroke(.primary, lineWidth: 8)
+                        .stroke(AppTheme.strain, lineWidth: 8)
                         .rotationEffect(.degrees(135))
                         .frame(width: 72, height: 72)
                     Text(String(format: "%.1f", day.strain))

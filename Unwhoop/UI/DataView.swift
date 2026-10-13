@@ -33,7 +33,9 @@ struct DataView: View {
                              battery: sync?.batteryPercent,
                              lastSync: sync?.lastSync,
                              deviceName: sync?.deviceName,
-                             onSync: { appState.sync.requestSync() })
+                             progress: appState.syncStatus,
+                             lastMessage: sync?.lastSyncMessage,
+                             onSync: { appState.requestSync() })
                 }
 
                 #if DEBUG
@@ -48,6 +50,11 @@ struct DataView: View {
                 #endif
 
                 Section("Export") {
+                    if let url = appState.latestRawExport {
+                        ShareLink(item: url) {
+                            Label("Export latest raw sync", systemImage: "square.and.arrow.up")
+                        }
+                    }
                     ExportRow(nights: nights, days: days)
                 }
 
@@ -67,12 +74,17 @@ struct DataView: View {
                 }
             }
             .navigationTitle("Data")
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.background)
+            .toolbarBackground(AppTheme.background, for: .navigationBar)
             .onAppear {
+                guard cancellables.isEmpty else { return }
                 appState.sync.connectionState
                     .receive(on: DispatchQueue.main)
                     .sink { connection = $0 }
                     .store(in: &cancellables)
             }
+            .onDisappear { cancellables.removeAll() }
         }
     }
 }
@@ -84,6 +96,8 @@ private struct BandCard: View {
     let battery: Int?
     let lastSync: Date?
     let deviceName: String?
+    let progress: SyncProgress
+    let lastMessage: String?
     let onSync: () -> Void
 
     var body: some View {
@@ -116,12 +130,18 @@ private struct BandCard: View {
                     Label("Sync now", systemImage: "arrow.triangle.2.circlepath")
                 }
                 .buttonStyle(.bordered)
-                .disabled(connection == .syncing || connection == .invalidInstallation)
+                .disabled(progress.isBusy || connection == .invalidInstallation)
+            }
+            if let message = progress.label ?? lastMessage {
+                HStack(alignment: .top, spacing: 8) {
+                    if progress.isBusy { ProgressView().controlSize(.small) }
+                    Text(message).font(.caption).foregroundStyle(.secondary)
+                }
             }
             // Reinstall honesty (PRD §9): baseline rebuilds from zero; export first.
             Text("If you delete the app, the baseline rebuilds from zero. Export before deleting.")
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(AppTheme.muted)
         }
         .padding(.vertical, 4)
     }
@@ -217,15 +237,21 @@ private struct ExportRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Computed tier — daily summaries + per-minute aggregates. Raw tier (R-R, motion) is date-ranged and streams to disk; see Export in code.")
+            Text(nights.isEmpty && days.isEmpty ? "No daily summaries to export yet. Downloaded sensor data is available through Export latest raw sync above." : "Export your daily summaries. Downloaded sensor data is available through Export latest raw sync above.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             HStack {
-                Button("Export CSV") { exportCSV() }
+                Button { exportCSV() } label: {
+                    Text("Export CSV").lineLimit(1).frame(maxWidth: .infinity)
+                }
                     .buttonStyle(.bordered)
-                Button("Export JSON") { exportJSON() }
+                Button { exportJSON() } label: {
+                    Text("Export JSON").lineLimit(1).frame(maxWidth: .infinity)
+                }
                     .buttonStyle(.bordered)
-                Spacer()
+            }
+            .disabled(nights.isEmpty && days.isEmpty)
+            if !nights.isEmpty || !days.isEmpty {
                 Text("≈ \(ByteCountFormatter.string(fromByteCount: Int64(max(csvBytes, jsonBytes)), countStyle: .file))")
                     .font(.caption)
                     .foregroundStyle(.secondary)

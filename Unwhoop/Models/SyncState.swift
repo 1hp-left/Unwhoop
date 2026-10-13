@@ -12,6 +12,8 @@ final class SyncState {
     var lastSync: Date?
     var batteryPercent: Int?
     var connectionRaw: String // ConnectionState raw value
+    var lastSyncMessage: String?
+    var lastSampleCount: Int = 0
 
     init(
         deviceName: String? = nil,

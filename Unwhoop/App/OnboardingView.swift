@@ -71,6 +71,7 @@ struct OnboardingView: View {
                 PairingView()
             }
         }
+        .background(AppTheme.background)
         .onAppear {
             disclaimerAccepted = settings?.disclaimerAccepted ?? false
         }
