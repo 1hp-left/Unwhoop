@@ -25,11 +25,28 @@ final class DashboardSnapshots: XCTestCase {
         state.configurePersistence(container.mainContext)
         let link = SyncState(deviceName: "WHOOP 5.0", batteryPercent: 72)
         container.mainContext.insert(link)
+        let settings = AppSettings()
+        settings.disclaimerAccepted = true
+        settings.pairedDeviceUUID = UUID().uuidString
+        container.mainContext.insert(settings)
         try container.mainContext.save()
         try capture(TodayView().environment(state).modelContainer(container), name: "Home-empty", size: CGSize(width: 393, height: 852))
         state.requestSync()
         try capture(TodayView().environment(state).modelContainer(container), name: "Home-syncing-small", size: CGSize(width: 375, height: 667))
         try capture(DataView().environment(state).modelContainer(container), name: "Data-syncing", size: CGSize(width: 393, height: 852))
+        // Illustrative fixtures are confined to tests; production never
+        // creates scores to fill a ring or a screenshot.
+        for offset in 0..<7 {
+            let night = NightSummary(nightDate: Date().addingTimeInterval(Double(-offset) * 86_400),
+                                     lnRMSSD: log(58), restingHR: 54, respiratoryRate: 14.8,
+                                     totalSleepMinutes: 435, sleepEfficiency: 0.9,
+                                     recoveryScore: 85, sleepScore: 74)
+            night.recoveryBand = .recovered
+            container.mainContext.insert(night)
+        }
+        container.mainContext.insert(DaySummary(dayDate: .now, strain: 14.2))
+        try container.mainContext.save()
+        try capture(TodayView().environment(state).modelContainer(container), name: "Home-illustrative-scores", size: CGSize(width: 393, height: 852))
     }
 
     @MainActor

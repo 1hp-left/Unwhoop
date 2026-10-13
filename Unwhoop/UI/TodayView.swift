@@ -64,9 +64,11 @@ struct TodayView: View {
                                 .font(.subheadline).foregroundStyle(AppTheme.muted)
                             Button(action: appState.requestSync) {
                                 Text(appState.syncStatus.isBusy ? "Syncing…" : "Sync now")
-                                    .font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.vertical, 5)
+                                    .font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.vertical, 12)
+                                    .foregroundStyle(appState.syncStatus.isBusy ? AppTheme.muted : AppTheme.background)
+                                    .background(appState.syncStatus.isBusy ? AppTheme.inset : .white, in: RoundedRectangle(cornerRadius: 10))
                             }
-                            .buttonStyle(.borderedProminent).tint(.white).foregroundStyle(AppTheme.background)
+                            .buttonStyle(.plain)
                             .disabled(appState.syncStatus.isBusy)
                         }
                     }
@@ -74,7 +76,7 @@ struct TodayView: View {
                     DashboardHeading(title: "Health Monitor", subtitle: latestNight == nil ? "Waiting for overnight metrics" : "Your overnight vitals")
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                         VitalTile(icon: "heart.fill", title: "HRV", value: latestNight.map { String(format: "%.0f ms", exp($0.lnRMSSD)) } ?? "—", delta: nil, deltaUnit: "")
-                        VitalTile(icon: "heart.pulse", title: "Resting heart rate", value: latestNight.map { String(format: "%.0f bpm", $0.restingHR) } ?? "—", delta: nil, deltaUnit: "")
+                        VitalTile(icon: "waveform.path.ecg", title: "Resting heart rate", value: latestNight.map { String(format: "%.0f bpm", $0.restingHR) } ?? "—", delta: nil, deltaUnit: "")
                         VitalTile(icon: "lungs.fill", title: "Respiratory rate", value: latestNight?.respiratoryRate.map { String(format: "%.1f /min", $0) } ?? "—", delta: nil, deltaUnit: "")
                         VitalTile(icon: "thermometer", title: "Skin temperature", value: latestNight?.skinTempDeviation.map { unit.format(celsius: $0) } ?? "—", delta: nil, deltaUnit: "")
                     }
@@ -213,7 +215,7 @@ private struct VitalsRow: View {
             VitalTile(icon: "heart.fill", title: "HRV",
                       value: String(format: "%.0f ms", exp(night.lnRMSSD)),
                       delta: hrvBaseline.map { exp(night.lnRMSSD) - exp($0) }, deltaUnit: " ms")
-            VitalTile(icon: "heart.pulse", title: "Resting HR",
+            VitalTile(icon: "waveform.path.ecg", title: "Resting HR",
                       value: String(format: "%.0f bpm", night.restingHR),
                       delta: rhrBaseline.map { night.restingHR - $0 }, deltaUnit: " bpm")
             VitalTile(icon: "lungs.fill", title: "Resp. rate",

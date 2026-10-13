@@ -643,7 +643,9 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
     ) {
         guard self.peripheral?.identifier == peripheral.identifier else { return }
         guard error == nil, let chars = service.characteristics else {
-            failConnection("Could not discover the band's data connection. Try again.")
+            if service.uuid.uuidString.lowercased() == Whoop5Gatt.service {
+                failConnection("Could not discover the band's data connection. Try again.")
+            }
             return
         }
         let cmdUUID = Whoop5Gatt.cmdWrite
