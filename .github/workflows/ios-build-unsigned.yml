@@ -53,6 +53,7 @@ jobs:
             CODE_SIGN_IDENTITY=""
 
       - name: Test pairing lifecycle on simulator
+        timeout-minutes: 15
         run: |
           set -euo pipefail
           DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; devices=json.load(sys.stdin)["devices"]; print(next(d["udid"] for runtime, ds in devices.items() if "iOS" in runtime for d in ds if d["name"].startswith("iPhone")))')
@@ -60,13 +61,26 @@ jobs:
             -project Unwhoop.xcodeproj -scheme Unwhoop -configuration Release \
             -destination "platform=iOS Simulator,id=$DEVICE_ID" \
             -derivedDataPath "$RUNNER_TEMP/simulator-tests" \
+            -resultBundlePath "$RUNNER_TEMP/sync-tests.xcresult" \
+            -parallel-testing-enabled NO \
             ENABLE_TESTABILITY=YES CODE_SIGNING_ALLOWED=NO
+
+      - name: Export UI screenshots
+        run: |
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/sync-tests.xcresult" \
+            --output-path "$RUNNER_TEMP/ui-screenshots"
+
+      - name: Upload UI screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unwhoop-ui-screenshots
+          path: ${{ runner.temp }}/ui-screenshots
 
       - name: Validate built app metadata
         run: |
           python3 scripts/validate_app_plist.py \
             "$RUNNER_TEMP/derived/Build/Products/Release-iphoneos/Unwhoop.app" \
-            --version 1.0.3 --build 4
+            --version 1.0.4 --build 5
 
       - name: Package .ipa
         run: |
@@ -82,7 +96,7 @@ jobs:
       - name: Validate packaged IPA metadata
         run: |
           python3 scripts/validate_app_plist.py "$RUNNER_TEMP/Unwhoop-unsigned.ipa" \
-            --version 1.0.3 --build 4
+            --version 1.0.4 --build 5
 
       - name: Upload .ipa
         uses: actions/upload-artifact@v4

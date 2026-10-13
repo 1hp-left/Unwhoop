@@ -2,11 +2,71 @@ import SwiftUI
 
 // MARK: - Shared UI
 //
-// Design rules (PRD §6), enforced here:
-// - Dark-first; SF Symbols; system colors.
-// - Color is semantic, not decorative: green/yellow/red ONLY for recovery
-//   bands. Everything else is monochrome + one accent.
-// - One primary number per screen.
+// Native performance dashboard, styled after the requested WHOOP reference.
+
+enum AppTheme {
+    static let background = Color(red: 0.055, green: 0.071, blue: 0.09)
+    static let surface = Color(red: 0.10, green: 0.122, blue: 0.15)
+    static let inset = Color(red: 0.14, green: 0.16, blue: 0.19)
+    static let muted = Color(red: 0.66, green: 0.70, blue: 0.75)
+    static let sleep = Color(red: 0.69, green: 0.63, blue: 0.94)
+    static let recovery = Color(red: 0.55, green: 0.83, blue: 0.26)
+    static let strain = Color(red: 0.25, green: 0.64, blue: 0.96)
+}
+
+struct MetricDial: View {
+    let title: String
+    let value: Double?
+    let maximum: Double
+    let color: Color
+    let percent: Bool
+
+    var body: some View {
+        VStack(spacing: 9) {
+            ZStack {
+                Circle().trim(from: 0, to: 0.84)
+                    .stroke(AppTheme.inset, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                if let value {
+                    Circle().trim(from: 0, to: 0.84 * max(0, min(value / maximum, 1)))
+                        .stroke(color, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                }
+            }
+            .rotationEffect(.degrees(118.8))
+            .overlay {
+                VStack(spacing: 0) {
+                    Text(value.map { percent ? String(format: "%.0f", $0) : String(format: "%.1f", $0) } ?? "—")
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(value == nil ? AppTheme.muted : color)
+                        .minimumScaleFactor(0.7)
+                    if percent && value != nil {
+                        Text("%").font(.caption2.bold()).foregroundStyle(color)
+                    }
+                }
+            }
+            .frame(width: 88, height: 88)
+            Text(title.uppercased())
+                .font(.system(size: 10, weight: .bold)).tracking(1)
+                .foregroundStyle(AppTheme.muted)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(value.map { percent ? "\(Int($0)) percent" : String(format: "%.1f", $0) } ?? "No score available")
+    }
+}
+
+struct DashboardHeading: View {
+    let title: String
+    let subtitle: String
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title).font(.title3.bold())
+            Text(subtitle).font(.caption).foregroundStyle(AppTheme.muted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
 
 extension Color {
     /// The ONLY sanctioned use of green/yellow/red in the app.
@@ -48,7 +108,7 @@ struct StaleBanner: View {
                 Spacer()
             }
             .padding()
-            .background(.yellow.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+            .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 12))
         }
     }
 }
@@ -130,7 +190,7 @@ struct VitalTile: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 12))
     }
 }
 
@@ -181,7 +241,7 @@ struct Card<Content: View>: View {
         content
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 16))
+            .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 14))
     }
 }
 

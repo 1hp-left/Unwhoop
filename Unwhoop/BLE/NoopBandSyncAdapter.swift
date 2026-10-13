@@ -72,6 +72,7 @@ private enum Whoop5Gatt {
 final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
 
     let connectionState = CurrentValueSubject<ConnectionState, Never>(.disconnected)
+    let syncProgress = CurrentValueSubject<SyncProgress, Never>(.idle)
     let discoveredBands = CurrentValueSubject<[BandDevice], Never>([])
     var onBatch: ((RawSampleBatch) -> Void)?
 
@@ -89,16 +90,19 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     private var peripheral: CBPeripheral?
     private var cmdChar: CBCharacteristic?
     private var puffinNotify: [CBCharacteristic] = []
-    private var helloAcked = false
+    private var readiness = BandSessionReadiness(requiredNotifications: Whoop5Gatt.notifySet)
+    private var helloAcked: Bool { readiness.helloAccepted }
     private var wantSyncOnHello = false
     private var scanRequested = false
 
     // Backfill ingest.
-    private let reassembler = Reassembler(family: .whoop5)
+    private var reassembler = Reassembler(family: .whoop5)
+    private var journal: SyncFrameJournal?
     private var seq: UInt8 = 1
     private var chunk: [ParsedFrame] = []
     private var syncing = false
     private var backfillTimeout: DispatchWorkItem?
+    private var connectionTimeout: DispatchWorkItem?
     private var lastBatteryPct: Int?
 
     private static let backfillTimeoutSeconds: TimeInterval = 60
@@ -188,10 +192,29 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     /// (PRD §7 battery budget).
     func requestSync() {
         bleQueue.async { [weak self] in
-            guard let self, self.central != nil else { return }
-            if self.syncing { return }
-            if let p = self.peripheral, p.state == .connected, self.helloAcked {
+            guard let self else { return }
+            guard self.central != nil else {
+                self.syncProgress.send(.failed("This installation is missing its Bluetooth permission text. Install the latest IPA and try again."))
+                return
+            }
+            self.requestSyncOnQueue()
+        }
+    }
+
+    private func requestSyncOnQueue() {
+            if syncing || wantSyncOnHello { return }
+            syncProgress.send(.connecting)
+            guard central.state == .poweredOn else {
+                syncProgress.send(.failed("Bluetooth is unavailable. Enable Bluetooth and allow Unwhoop access in Settings, then try again."))
+                return
+            }
+            if let p = peripheral, p.state == .connected, readiness.isReady {
                 self.beginBackfill()
+                return
+            }
+            if let p = peripheral, p.state == .connecting || p.state == .connected {
+                wantSyncOnHello = true
+                scheduleConnectionTimeout()
                 return
             }
             // Reconnect to the last bonded band without a scan.
@@ -204,8 +227,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
                     return
                 }
             }
-            self.connectionState.send(.disconnected)
-        }
+            syncProgress.send(.failed("Your paired band could not be found. Keep it nearby and try again."))
     }
 
     // MARK: - Session internals (bleQueue only)
@@ -213,7 +235,8 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     private func beginConnect(_ p: CBPeripheral) {
         peripheral = p
         p.delegate = self
-        helloAcked = false
+        readiness = BandSessionReadiness(requiredNotifications: Whoop5Gatt.notifySet)
+        reassembler = Reassembler(family: .whoop5)
         helloBondAttempts = 0
         helloRetry?.cancel()
         helloRetry = nil
@@ -221,6 +244,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         cmdChar = nil
         connectionState.send(.connecting)
         central.connect(p)
+        scheduleConnectionTimeout()
     }
 
     private func stopScanOnQueue() {
@@ -232,7 +256,8 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         peripheral = nil
         cmdChar = nil
         puffinNotify = []
-        helloAcked = false
+        readiness = BandSessionReadiness(requiredNotifications: Whoop5Gatt.notifySet)
+        wantSyncOnHello = false
         helloBondAttempts = 0
         helloRetry?.cancel()
         helloRetry = nil
@@ -240,6 +265,39 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         chunk = []
         backfillTimeout?.cancel()
         backfillTimeout = nil
+        connectionTimeout?.cancel()
+        connectionTimeout = nil
+        journal?.close()
+        journal = nil
+    }
+
+    private func scheduleConnectionTimeout() {
+        connectionTimeout?.cancel()
+        let timeout = DispatchWorkItem { [weak self] in
+            guard let self, !self.readiness.isReady else { return }
+            self.failConnection("The band did not finish connecting. Keep it nearby and try again.")
+        }
+        connectionTimeout = timeout
+        bleQueue.asyncAfter(deadline: .now() + 40, execute: timeout)
+    }
+
+    private func failConnection(_ message: String) {
+        if let p = peripheral { central.cancelPeripheralConnection(p) }
+        resetSession()
+        syncProgress.send(.failed(message))
+        connectionState.send(.outOfRange)
+    }
+
+    private func finishHandshakeIfReady() {
+        guard readiness.takeReadyTransition() else { return }
+        connectionTimeout?.cancel()
+        connectionTimeout = nil
+        connectionState.send(.connected)
+        writeCommand(cmd: PuffinOpcode.getBatteryLevel, payload: [0x00], withResponse: true)
+        if wantSyncOnHello {
+            wantSyncOnHello = false
+            beginBackfill()
+        }
     }
 
     private func nextSeq() -> UInt8 {
@@ -297,16 +355,29 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         }
         resetSession()
         connectionState.send(.needsPairingMode)
+        syncProgress.send(.failed("The band needs pairing mode. Make its light flash blue, then try again."))
     }
 
     private func beginBackfill() {
-        guard !syncing, helloAcked else { return }
+        guard !syncing, readiness.isReady else { return }
+        do {
+            journal = try SyncFrameJournal()
+        } catch {
+            syncProgress.send(.failed("Could not open sync storage: \(error.localizedDescription)"))
+            return
+        }
         syncing = true
         chunk = []
+        syncProgress.send(.receiving(records: 0))
         connectionState.send(.syncing)
         // Payload MUST be [0x00], not empty — the strap serves zero frames
         // for an empty payload even with records pending (verified on-device).
         writeCommand(cmd: PuffinOpcode.sendHistoricalData, payload: [0x00], withResponse: true)
+        refreshBackfillTimeout()
+    }
+
+    private func refreshBackfillTimeout() {
+        backfillTimeout?.cancel()
         let timeout = DispatchWorkItem { [weak self] in
             self?.finishSync(completed: false)
         }
@@ -326,7 +397,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         let streams = extractHistoricalStreams(
             chunk, deviceClockRef: now, wallClockRef: now, family: .whoop5)
 
-        let stepByTs = Dictionary(uniqueKeysWithValues: streams.steps.map { ($0.ts, $0) })
+        let stepByTs = Dictionary(streams.steps.map { ($0.ts, $0) }, uniquingKeysWith: { _, newest in newest })
         let batch = RawSampleBatch(
             heartRates: streams.hr.map {
                 (date: Date(timeIntervalSince1970: TimeInterval($0.ts)), bpm: Double($0.bpm))
@@ -353,6 +424,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         )
         // The strap freed every acked record as we went, so what we hold is
         // ours — deliver even partial (isComplete=false) rather than lose it.
+        syncProgress.send(.saving)
         onBatch?(batch)
 
         connectionState.send(.connected)
@@ -370,13 +442,24 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
             let parsed = parseFrame(frame, family: .whoop5)
             // CRC-gate every inbound frame before acting on it.
             guard parsed.ok else { continue }
+            if syncing {
+                refreshBackfillTimeout()
+                do { try journal?.append(Data(frame)) } catch {
+                    finishSync(completed: false)
+                    syncProgress.send(.failed("Sync storage failed: \(error.localizedDescription)"))
+                    return
+                }
+            }
             switch parsed.typeName {
             case "COMMAND_RESPONSE":
                 handleCommandResponse(parsed)
             case "METADATA":
                 handleMetadata(parsed, rawFrame: frame)
             case "HISTORICAL_DATA":
-                chunk.append(parsed)
+                if syncing {
+                    chunk.append(parsed)
+                    syncProgress.send(.receiving(records: chunk.count))
+                }
             default:
                 break
             }
@@ -395,13 +478,22 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     }
 
     private func handleMetadata(_ parsed: ParsedFrame, rawFrame: [UInt8]) {
+        guard syncing else { return }
         switch classifyHistoricalMeta(parsed) {
         case .start:
-            chunk = []
+            // Each history bank has a start marker. Keep earlier banks.
+            break
         case .end:
             // Ack with the verbatim 8 end-data bytes at frame[21..<29]; the
             // strap only frees banked records once acked.
             if rawFrame.count >= 29 {
+                // Commit received frames to disk before allowing the band to
+                // release this bank. A killed app still retains the raw data.
+                do { try journal?.checkpoint() } catch {
+                    finishSync(completed: false)
+                    syncProgress.send(.failed("Could not save received history: \(error.localizedDescription)"))
+                    return
+                }
                 let endData = Array(rawFrame[21..<29])
                 let ack = whoop5HistoricalAckFrame(endData: endData, seq: nextSeq())
                 if let p = peripheral, let c = cmdChar {
@@ -431,8 +523,13 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
                 )
             }
         case .poweredOff:
+            if syncing { finishSync(completed: false) }
             resetSession()
             connectionState.send(.disconnected)
+            syncProgress.send(.failed("Bluetooth is off. Turn it on and try Sync now again."))
+        case .unauthorized, .unsupported:
+            resetSession()
+            syncProgress.send(.failed("Bluetooth access is unavailable. Check Unwhoop permissions in Settings."))
         default:
             break
         }
@@ -468,8 +565,7 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
         didFailToConnect peripheral: CBPeripheral,
         error: Error?
     ) {
-        resetSession()
-        connectionState.send(.outOfRange)
+        failConnection("Could not connect to your band. Keep it nearby and try again.")
     }
 
     func centralManager(
@@ -487,8 +583,10 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
             // pairing mode (blue flash) — say so instead of failing silently.
             enterNeedsPairingMode()
         } else {
+            let interrupted = wantSyncOnHello
             resetSession()
             connectionState.send(.disconnected)
+            if interrupted { syncProgress.send(.failed("The band disconnected before sync started. Try again.")) }
         }
     }
 
@@ -505,7 +603,9 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
         }
         if let p = peripherals.first {
             peripheral = p
-            connectionState.send(.syncing)
+            readiness = BandSessionReadiness(requiredNotifications: Whoop5Gatt.notifySet)
+            connectionState.send(.connecting)
+            if p.state == .connected { centralManager(central, didConnect: p) }
         }
     }
 }
@@ -515,7 +615,12 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
 extension NoopBandSyncAdapter: CBPeripheralDelegate {
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        guard error == nil, let services = peripheral.services else { return }
+        guard self.peripheral?.identifier == peripheral.identifier else { return }
+        guard error == nil, let services = peripheral.services,
+              services.contains(where: { $0.uuid.uuidString.lowercased() == Whoop5Gatt.service }) else {
+            failConnection("The band did not expose its history service. Try reconnecting.")
+            return
+        }
         for s in services {
             switch s.uuid.uuidString.lowercased() {
             case Whoop5Gatt.service:
@@ -536,7 +641,11 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
         didDiscoverCharacteristicsFor service: CBService,
         error: Error?
     ) {
-        guard error == nil, let chars = service.characteristics else { return }
+        guard self.peripheral?.identifier == peripheral.identifier else { return }
+        guard error == nil, let chars = service.characteristics else {
+            failConnection("Could not discover the band's data connection. Try again.")
+            return
+        }
         let cmdUUID = Whoop5Gatt.cmdWrite
         let notifyUUIDs = Whoop5Gatt.notifySet
         for c in chars {
@@ -565,6 +674,7 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
         didWriteValueFor characteristic: CBCharacteristic,
         error: Error?
     ) {
+        guard self.peripheral?.identifier == peripheral.identifier else { return }
         let cmdUUID = Whoop5Gatt.cmdWrite
         guard characteristic.uuid.uuidString.lowercased() == cmdUUID else { return }
         if error != nil {
@@ -585,19 +695,15 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
         // Hello acknowledged: the link is up. Persist the band for
         // scan-free reconnects, subscribe the puffin notifies, and kick the
         // pending sync if one was requested.
-        helloAcked = true
+        guard readiness.acceptHello() else { return }
+        helloRetry?.cancel()
+        helloRetry = nil
         UserDefaults.standard.set(
             peripheral.identifier.uuidString, forKey: Self.lastBandKey)
         for c in puffinNotify {
             peripheral.setNotifyValue(true, for: c)
         }
-        connectionState.send(.connected)
-        // Opportunistic battery read while the link is warm.
-        writeCommand(cmd: PuffinOpcode.getBatteryLevel, payload: [0x00], withResponse: true)
-        if wantSyncOnHello {
-            wantSyncOnHello = false
-            beginBackfill()
-        }
+        finishHandshakeIfReady()
     }
 
     func peripheral(
@@ -605,6 +711,7 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
         didUpdateValueFor characteristic: CBCharacteristic,
         error: Error?
     ) {
+        guard self.peripheral?.identifier == peripheral.identifier else { return }
         guard error == nil, let data = characteristic.value else { return }
         let uuid = characteristic.uuid.uuidString.lowercased()
         if uuid == "2a19" {
@@ -628,7 +735,14 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
         didUpdateNotificationStateFor characteristic: CBCharacteristic,
         error: Error?
     ) {
-        // Subscription confirmations need no action; frames arrive via
-        // didUpdateValueFor.
+        guard self.peripheral?.identifier == peripheral.identifier else { return }
+        let uuid = characteristic.uuid.uuidString.lowercased()
+        guard Whoop5Gatt.notifySet.contains(uuid) else { return }
+        guard error == nil, characteristic.isNotifying else {
+            failConnection("The band refused its data subscription. Reconnect and try again.")
+            return
+        }
+        readiness.notificationChanged(uuid, enabled: true)
+        finishHandshakeIfReady()
     }
 }
