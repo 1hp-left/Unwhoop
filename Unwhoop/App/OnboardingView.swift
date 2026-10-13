@@ -8,9 +8,11 @@ import SwiftData
 
 struct OnboardingView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.modelContext) private var modelContext
     @Query private var settingsRows: [AppSettings]
     @State private var disclaimerAccepted = false
     @State private var showPairing = false
+    @State private var saveError: String?
 
     private var settings: AppSettings? { settingsRows.first }
 
@@ -46,14 +48,21 @@ struct OnboardingView: View {
                     .background(.quaternary, in: RoundedRectangle(cornerRadius: 16))
 
                     Button {
-                        settings?.disclaimerAccepted = true
-                        showPairing = true
+                        guard let settings else { return }
+                        settings.disclaimerAccepted = true
+                        do {
+                            try modelContext.save()
+                            showPairing = true
+                        } catch {
+                            modelContext.rollback()
+                            saveError = error.localizedDescription
+                        }
                     } label: {
                         Label("Pair your WHOOP 5.0", systemImage: "bluetooth")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(!disclaimerAccepted)
+                    .disabled(!disclaimerAccepted || settings == nil)
                     .padding(.top, 8)
                 }
                 .padding()
@@ -61,6 +70,16 @@ struct OnboardingView: View {
             .navigationDestination(isPresented: $showPairing) {
                 PairingView()
             }
+        }
+        .onAppear {
+            disclaimerAccepted = settings?.disclaimerAccepted ?? false
+        }
+        .alert("Could not save agreement", isPresented: Binding(
+            get: { saveError != nil }, set: { if !$0 { saveError = nil } }
+        )) {
+            Button("OK") { saveError = nil }
+        } message: {
+            Text(saveError ?? "Please try again.")
         }
     }
 }

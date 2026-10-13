@@ -11,6 +11,7 @@ import Combine
 struct PairingView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @Query private var settingsRows: [AppSettings]
 
     @State private var cancellables = Set<AnyCancellable>()
@@ -41,8 +42,7 @@ struct PairingView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                     Button("Cancel") {
-                        appState.sync.disconnect()
-                        appState.pairingPhase = .idle
+                        appState.cancelPairing()
                     }
                     .buttonStyle(.bordered)
                 }
@@ -57,9 +57,16 @@ struct PairingView: View {
         .padding()
         .navigationTitle("Pair your band")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear(perform: subscribe)
+        .onAppear {
+            guard cancellables.isEmpty else { return }
+            appState.cancelPairing()
+            subscribe()
+        }
+        .onDisappear {
+            cancellables.removeAll()
+        }
         .alert("One important rule", isPresented: $showWarning) {
-            Button("Got it") { dismiss() }
+            Button("Got it", action: completePairing)
         } message: {
             Text("Never open the official WHOOP app against this band while using Unwhoop. A firmware push from WHOOP's app can permanently break third-party sync. Pick one app per band.")
         }
@@ -76,12 +83,11 @@ struct PairingView: View {
             .sink { state in
                 switch state {
                 case .connected:
-                    // Pairing succeeded: record, warn once, done.
+                    guard appState.acceptPairingConnection() else { return }
                     if let settings, !settings.pairingWarningShown {
-                        settings.pairingWarningShown = true
                         showWarning = true
                     } else {
-                        dismiss()
+                        completePairing()
                     }
                 case .pairing:
                     appState.pairingPhase = .pairing
@@ -89,6 +95,12 @@ struct PairingView: View {
                     appState.pairingPhase = .needsPairingMode
                 case .invalidInstallation:
                     appState.pairingPhase = .failed("This installation is missing its Bluetooth permission text. Install the latest Unwhoop IPA over this app to keep your data.")
+                case .outOfRange:
+                    appState.pairingPhase = .failed("Could not connect to the band. Keep it nearby and try again.")
+                case .disconnected:
+                    if appState.pairingDevice != nil && !appState.pairingHandshakeComplete {
+                        appState.pairingPhase = .failed("The band disconnected before pairing finished. Put it in pairing mode and try again.")
+                    }
                 default:
                     break
                 }
@@ -101,15 +113,27 @@ struct PairingView: View {
             appState.pairingPhase = .failed("This installation is missing its Bluetooth permission text. Install the latest Unwhoop IPA over this app to keep your data.")
             return
         }
+        appState.cancelPairing()
         appState.pairingPhase = .requestingPermission
         appState.sync.startScan()
         appState.pairingPhase = .scanning
     }
 
     private func connect(to device: BandDevice) {
-        appState.pairingPhase = .connecting(device)
-        appState.sync.connect(to: device)
-        // TODO(fork): on real connect success, persist settings.pairedDeviceUUID.
+        appState.beginPairing(to: device)
+    }
+
+    private func completePairing() {
+        guard let settings else {
+            appState.pairingPhase = .failed("App settings are not ready. Try pairing again.")
+            return
+        }
+        do {
+            try appState.completePairing(settings: settings, context: modelContext)
+            dismiss()
+        } catch {
+            appState.pairingPhase = .failed("Could not save pairing. Try again. \(error.localizedDescription)")
+        }
     }
 }
 
