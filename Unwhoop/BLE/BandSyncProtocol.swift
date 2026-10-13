@@ -131,6 +131,10 @@ struct BandSessionReadiness {
     private var subscribed: Set<String> = []
     private var announced = false
 
+    init(requiredNotifications: Set<String>) {
+        self.requiredNotifications = requiredNotifications
+    }
+
     var isReady: Bool { helloAccepted && requiredNotifications.isSubset(of: subscribed) }
 
     mutating func acceptHello() -> Bool {
