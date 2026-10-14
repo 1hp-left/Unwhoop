@@ -23,7 +23,7 @@ final class AppState {
     private(set) var pairingHandshakeComplete = false
     private(set) var syncStatus: SyncProgress = .idle
     private(set) var latestRawExport: URL?
-    var onSyncFinished: ((Bool) -> Void)?
+    @ObservationIgnored var onSyncFinished: ((Bool) -> Void)?
     @ObservationIgnored private var persistenceContext: ModelContext?
     @ObservationIgnored private var subscriptions = Set<AnyCancellable>()
     @ObservationIgnored private let rawStore: RawSyncStore
@@ -33,7 +33,9 @@ final class AppState {
     init(sync: any BandSyncProtocol = NoopBandSyncAdapter(), rawStore: RawSyncStore = RawSyncStore()) {
         self.sync = sync
         self.rawStore = rawStore
+        self.syncStatus = sync.syncProgress.value
         sync.syncProgress
+            .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.syncStatus = $0 }
             .store(in: &subscriptions)
@@ -182,6 +184,16 @@ final class AppState {
                 self.latestRawExport = saved.url
                 guard self.persistenceContext != nil, let pipeline = self.pipeline else {
                     self.syncStatus = .failed("Received data was saved, but sync settings are unavailable. Reopen the app.")
+                    self.onSyncFinished?(false)
+                    return
+                }
+                self.syncStatus = .saving
+                if saved.samples == 0 {
+                    // No sensor rows or analytics work are needed. Complete
+                    // the empty-transfer state on this queue immediately.
+                    let report = try pipeline.ingest(batch)
+                    try Data().write(to: saved.url.appendingPathExtension("ingested"), options: .atomic)
+                    self.finishProcessing(batch, report: report)
                     return
                 }
                 self.processingQueue.async { [weak self] in
@@ -202,6 +214,7 @@ final class AppState {
                 }
             } catch {
                 self.syncStatus = .failed("Could not save sync: \(error.localizedDescription). Please try again.")
+                self.onSyncFinished?(false)
             }
         }
     }

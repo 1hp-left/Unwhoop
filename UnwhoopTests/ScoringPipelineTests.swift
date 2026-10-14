@@ -150,10 +150,13 @@ final class ScoringPipelineTests: XCTestCase {
         state.configurePersistence(context)
         let done = expectation(description: "empty transfer processed")
         state.onSyncFinished = { success in XCTAssertFalse(success); done.fulfill() }
-        band.onBatch?(RawSampleBatch(heartRates: [], rrIntervals: [], motionFrames: [], skinTemperatures: [], batteryPercent: 80, isComplete: true))
+        let deliver = try XCTUnwrap(band.onBatch)
+        state.requestSync()
+        deliver(RawSampleBatch(heartRates: [], rrIntervals: [], motionFrames: [], skinTemperatures: [], batteryPercent: 80, isComplete: true))
         await fulfillment(of: [done], timeout: 15)
         XCTAssertEqual(state.syncStatus, .waitingForData)
         XCTAssertEqual(try ModelContext(store).fetch(FetchDescriptor<SyncState>()).first?.lastSync, previous)
+        withExtendedLifetime(state) {}
     }
 
     func testAutomaticBatteryPolicyLimitsOffloadAndBacksOff() {

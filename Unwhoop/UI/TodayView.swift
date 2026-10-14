@@ -15,7 +15,7 @@ struct TodayView: View {
 
     private var latestNight: NightSummary? { nights.first { Calendar.current.isDateInToday($0.nightDate) } }
     private var today: DaySummary? { days.first { Calendar.current.isDateInToday($0.dayDate) } }
-    private var usableNights: Int { nights.filter { !$0.lowConfidence && $0.hrvAvailable }.count }
+    private var usableNights: Int { nights.filter { !$0.lowConfidence && $0.hrvAvailable && $0.restingHRAvailable && $0.confounderFlags.isEmpty }.count }
     private var lastSync: Date? { syncRows.first?.lastSync }
     private var unit: TemperatureUnit { settingsRows.first?.temperatureUnit ?? .fahrenheit }
 
@@ -121,7 +121,7 @@ private struct BaselineCountdown: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Building baseline")
                     .font(.headline)
-                Text("\(nightsSoFar)/7 nights — your recovery score unlocks once the baseline exists.")
+                Text("\(min(7, nightsSoFar))/7 usable nights — the first recovery score follows seven baseline nights.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 ProgressView(value: Double(nightsSoFar), total: 7)

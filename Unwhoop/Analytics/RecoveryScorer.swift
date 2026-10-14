@@ -81,7 +81,7 @@ enum RecoveryScorer {
         let flags = confounderFlags(zHRV: zH, zRHR: zR,
                                     rhrDeltaBpm: night.restingHR - baselines.restingHR.mean)
         // Basis line in ms (exp of the log values), per PRD §6 "no black boxes".
-        let basis = String(format: "LnRMSSD %.0fms vs your %.0fms baseline",
+        let basis = String(format: "HRV %.0f ms vs your %.0f ms baseline",
                            exp(night.lnRMSSD), exp(baselines.hrv.mean))
         let reason = night.lowConfidence ? night.confidenceReason : nil
         return RecoveryResult(score: score,

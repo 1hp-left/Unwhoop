@@ -277,12 +277,14 @@ final class SensorPipeline {
         }
         let tail = staged.suffix(30)
         let closed = wake < n - 20 && tail.filter { $0.stage == .wake }.count >= 20
+        let onsetCovered = onset >= 10 && staged.prefix(onset).filter { $0.stage == .wake }.count >= 10
         var longestGap = 0, run = 0
         for available in known { run = available ? 0 : run + 1; longestGap = max(longestGap, run) }
         let hrvOK = selected != nil && !globalCleaning.lowConfidence
-        let low = coverage < 0.8 || longestGap >= 20 || !closed || !hrvOK
+        let low = coverage < 0.8 || longestGap >= 20 || !closed || !onsetCovered || !hrvOK
         let reason: String?
-        if !closed { reason = "Sleep window is still open; waiting for at least ten minutes of observed wakefulness." }
+        if !onsetCovered { reason = "Sleep onset is not covered by observed wakefulness; scores withheld." }
+        else if !closed { reason = "Sleep window is still open; waiting for at least ten minutes of observed wakefulness." }
         else if coverage < 0.8 || longestGap >= 20 { reason = "Overnight coverage is incomplete; scores withheld." }
         else if rr.isEmpty { reason = "No R-R data; HRV-based scores withheld." }
         else if globalCleaning.lowConfidence { reason = String(format: "R-R artifacts %.0f%% exceed the 15%% gate; HRV-based scores withheld.", globalCleaning.artifactFraction * 100) }
@@ -306,7 +308,8 @@ final class SensorPipeline {
         night.sleepOnset = start.addingTimeInterval(Double(onset) * 30)
         night.wakeTime = start.addingTimeInterval(Double(wake + 1) * 30)
         night.meanSkinTemperature = signals.temperature.isEmpty ? nil : mean(signals.temperature.map(\.value))
-        let usable = past.filter { !$0.lowConfidence && $0.hrvAvailable && $0.restingHRAvailable }
+        let usable = past.filter { !$0.lowConfidence && $0.hrvAvailable && $0.restingHRAvailable && $0.confounderFlags.isEmpty }
+            .sorted { $0.nightDate < $1.nightDate }
         let debt = sleepDebtMinutes(usable.sorted { $0.nightDate < $1.nightDate }.map { ($0.sleepNeedMinutes, $0.totalSleepMinutes) })
         night.sleepNeedMinutes = sleepNeedMinutes(baselineMedianMin: settings?.sleepGoalMinutes ?? 480, dayStrain: previousStrain, sleepDebtMin: debt)
         if hrvOK {
