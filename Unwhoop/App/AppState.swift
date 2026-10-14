@@ -25,7 +25,10 @@ final class AppState {
     private(set) var latestRawExport: URL?
     var nextAutomaticSyncAt: Date?
     var automaticSyncHint: String?
-    private(set) var hasBudgetContinuation = false
+    var hasBudgetContinuation: Bool {
+        if case .paused = syncStatus { return true }
+        return false
+    }
     @ObservationIgnored var onSyncFinished: ((Bool) -> Void)?
     @ObservationIgnored private var persistenceContext: ModelContext?
     @ObservationIgnored private var subscriptions = Set<AnyCancellable>()
@@ -236,8 +239,6 @@ final class AppState {
                 else if !batch.isComplete, let reason = batch.diagnostics?.stopReason, reason.isBudgetPause {
                     outcome = .paused(samples: report.acceptedSamples, reason: reason.explanation)
                 } else { outcome = .completed(samples: report.acceptedSamples, complete: batch.isComplete) }
-                hasBudgetContinuation = !batch.isComplete && report.acceptedSamples > 0
-                    && batch.diagnostics?.stopReason?.isBudgetPause == true
                 link.lastSyncMessage = outcome.label
                 link.transferMessage = batch.diagnostics?.stopReason?.explanation
                 link.historyMessage = report.history
