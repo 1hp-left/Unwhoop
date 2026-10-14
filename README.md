@@ -10,13 +10,13 @@ proprietary scores or as clinical measurements.
 
 ## Current release
 
-**1.1.0 (build 6)** includes the connected scoring pipeline, automatic sync,
+**1.1.1 (build 7)** includes the connected scoring pipeline, automatic sync,
 R-R quality gates, history diagnostics, a WHOOP-inspired dark dashboard, and
 an original U/pulse app icon.
 
-The [verified build](https://github.com/1hp-left/Unwhoop/actions/runs/38491488317)
-compiled the device app and passed **26 iOS tests and 8 metadata tests** at
-commit `a873295`. Pairing and live sensor transfers have been verified on the
+The [verified build](https://github.com/1hp-left/Unwhoop/actions/runs/38496716705)
+compiled the device app and passed **32 iOS tests and 8 metadata tests** at
+commit `9e221f2`. Pairing and live sensor transfers have been verified on the
 user's WHOOP 5.0. Physical overnight backfill and unattended background sync
 still need device verification. See [BUILD_NOTES.md](BUILD_NOTES.md) for details.
 
@@ -145,3 +145,4 @@ scripts/      packaging metadata validation and icon generation
 
 Unwhoop is an independent project and is not affiliated with or endorsed by
 WHOOP. The name identifies the hardware it interoperates with.
+
