@@ -80,7 +80,7 @@ jobs:
         run: |
           python3 scripts/validate_app_plist.py \
             "$RUNNER_TEMP/derived/Build/Products/Release-iphoneos/Unwhoop.app" \
-            --version 1.0.4 --build 5
+            --version 1.1.0 --build 6
 
       - name: Package .ipa
         run: |
@@ -96,7 +96,7 @@ jobs:
       - name: Validate packaged IPA metadata
         run: |
           python3 scripts/validate_app_plist.py "$RUNNER_TEMP/Unwhoop-unsigned.ipa" \
-            --version 1.0.4 --build 5
+            --version 1.1.0 --build 6
 
       - name: Upload .ipa
         uses: actions/upload-artifact@v4

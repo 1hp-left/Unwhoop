@@ -13,8 +13,9 @@ struct TodayView: View {
     @Query private var syncRows: [SyncState]
     @Query private var settingsRows: [AppSettings]
 
-    private var latestNight: NightSummary? { nights.first }
-    private var today: DaySummary? { days.first }
+    private var latestNight: NightSummary? { nights.first { Calendar.current.isDateInToday($0.nightDate) } }
+    private var today: DaySummary? { days.first { Calendar.current.isDateInToday($0.dayDate) } }
+    private var usableNights: Int { nights.filter { !$0.lowConfidence && $0.hrvAvailable && $0.restingHRAvailable && $0.confounderFlags.isEmpty }.count }
     private var lastSync: Date? { syncRows.first?.lastSync }
     private var unit: TemperatureUnit { settingsRows.first?.temperatureUnit ?? .fahrenheit }
 
@@ -47,9 +48,9 @@ struct TodayView: View {
 
                     HStack(spacing: 8) {
                         MetricDial(title: "Sleep", value: latestNight?.sleepScore, maximum: 100, color: AppTheme.sleep, percent: true)
-                        MetricDial(title: "Recovery", value: nights.count >= 7 ? latestNight?.recoveryScore : nil, maximum: 100,
+                        MetricDial(title: "Recovery", value: latestNight?.recoveryScore, maximum: 100,
                                    color: latestNight?.recoveryBand.map { Color.recoveryBand($0) } ?? AppTheme.recovery, percent: true)
-                        MetricDial(title: "Strain", value: today?.strain, maximum: 21, color: AppTheme.strain, percent: false)
+                        MetricDial(title: "Strain", value: today.flatMap { $0.strainAvailable ? $0.strain : nil }, maximum: 21, color: AppTheme.strain, percent: false)
                     }.padding(.vertical, 8)
 
                     Card {
@@ -62,36 +63,38 @@ struct TodayView: View {
                             }
                             Text(appState.syncStatus.label ?? syncRows.first?.lastSyncMessage ?? "Your band is paired. Sync to download its stored sensor data.")
                                 .font(.subheadline).foregroundStyle(AppTheme.muted)
-                            Button(action: appState.requestSync) {
-                                Text(appState.syncStatus.isBusy ? "Syncing…" : "Sync now")
-                                    .font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.vertical, 12)
-                                    .foregroundStyle(appState.syncStatus.isBusy ? AppTheme.muted : AppTheme.background)
-                                    .background(appState.syncStatus.isBusy ? AppTheme.inset : .white, in: RoundedRectangle(cornerRadius: 10))
+                            Text("Automatic sync · Full offload while your phone is charging")
+                                .font(.caption).foregroundStyle(AppTheme.muted)
+                            if let message = syncRows.first?.scoringMessage {
+                                Text(message).font(.caption).foregroundStyle(AppTheme.muted)
                             }
-                            .buttonStyle(.plain)
-                            .disabled(appState.syncStatus.isBusy)
                         }
                     }
 
                     DashboardHeading(title: "Health Monitor", subtitle: latestNight == nil ? "Waiting for overnight metrics" : "Your overnight vitals")
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                        VitalTile(icon: "heart.fill", title: "HRV", value: latestNight.map { String(format: "%.0f ms", exp($0.lnRMSSD)) } ?? "—", delta: nil, deltaUnit: "")
-                        VitalTile(icon: "waveform.path.ecg", title: "Resting heart rate", value: latestNight.map { String(format: "%.0f bpm", $0.restingHR) } ?? "—", delta: nil, deltaUnit: "")
+                        VitalTile(icon: "heart.fill", title: "HRV", value: latestNight.map { $0.hrvAvailable ? String(format: "%.0f ms", exp($0.lnRMSSD)) : "—" } ?? "—", delta: nil, deltaUnit: "")
+                        VitalTile(icon: "waveform.path.ecg", title: "Resting heart rate", value: latestNight.map { $0.restingHRAvailable ? String(format: "%.0f bpm", $0.restingHR) : "—" } ?? "—", delta: nil, deltaUnit: "")
                         VitalTile(icon: "lungs.fill", title: "Respiratory rate", value: latestNight?.respiratoryRate.map { String(format: "%.1f /min", $0) } ?? "—", delta: nil, deltaUnit: "")
                         VitalTile(icon: "thermometer", title: "Skin temperature", value: latestNight?.skinTempDeviation.map { unit.format(celsius: $0) } ?? "—", delta: nil, deltaUnit: "")
                     }
-                    if !nights.isEmpty && nights.count < 7 { BaselineCountdown(nightsSoFar: nights.count) }
+                    if usableNights < 7 { BaselineCountdown(nightsSoFar: usableNights) }
                     DashboardHeading(title: "My Day", subtitle: "Sleep, recovery & activity")
                     if let night = latestNight {
-                        if nights.count >= 7 { RecoveryCard(night: night) }
+                        if usableNights >= 7 { RecoveryCard(night: night) }
                         SleepCard(night: night)
                     }
-                    if let today { StrainCard(day: today) }
+                    if let today {
+                        if today.strainAvailable { StrainCard(day: today) }
+                        else if let reason = today.qualityReason {
+                            Card { Text(reason).font(.subheadline).foregroundStyle(AppTheme.muted) }
+                        }
+                    }
                     if latestNight == nil && today == nil {
                         Card {
                             VStack(alignment: .leading, spacing: 8) {
                                 Label("No daily summaries yet", systemImage: "waveform.path.ecg").font(.headline)
-                                Text("Downloaded sensor data is saved on your phone. Daily scores are unavailable in this build. You can export the latest raw sync from Data.")
+                                Text("Keep wearing your band. Sleep needs a covered overnight window; recovery needs seven usable baseline nights. Automatic sync runs when the band is nearby.")
                                     .font(.caption).foregroundStyle(AppTheme.muted)
                             }
                         }
@@ -118,7 +121,7 @@ private struct BaselineCountdown: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Building baseline")
                     .font(.headline)
-                Text("\(nightsSoFar)/7 nights — your recovery score unlocks once the baseline exists.")
+                Text("\(min(7, nightsSoFar))/7 usable nights — the first recovery score follows seven baseline nights.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 ProgressView(value: Double(nightsSoFar), total: 7)
@@ -254,6 +257,10 @@ private struct SleepCard: View {
                 }
                 StageBar(light: night.lightMinutes, deep: night.deepMinutes,
                          rem: night.remMinutes, wake: night.wakeMinutes)
+                if night.lowConfidence { LowConfidenceBadge(reason: night.confidenceReason) }
+                if let basis = night.sleepScoreBasis {
+                    Text(basis).font(.caption).foregroundStyle(AppTheme.muted)
+                }
                 HStack {
                     Text("need: \(Format.hoursMinutes(night.sleepNeedMinutes))")
                         .font(.caption)

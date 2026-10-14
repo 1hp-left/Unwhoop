@@ -16,6 +16,7 @@ class MetadataTests(unittest.TestCase):
         self.built.update(CFBundleShortVersionString="1.0.2", CFBundleVersion="3",
                           CFBundleExecutable="Unwhoop",
                           CFBundleIdentifier="com.unwhoop.app")
+        self.built["CFBundleIcons"] = {"CFBundlePrimaryIcon": {"CFBundleIconName": "AppIcon"}}
 
     def test_valid_metadata(self):
         validate(self.built, self.source, "1.0.2", "3")

@@ -11,17 +11,17 @@ enum CSVExporter {
     /// Writes the computed-tier CSV to a temp file and returns its URL.
     static func computedCSV(nights: [NightSummary], days: [DaySummary]) throws -> URL {
         var lines: [String] = []
-        lines.append("type,date,ln_rmssd_ms,resting_hr_bpm,resp_rate_bpm,skin_temp_dev_c," +
+        lines.append("type,date,ln_rmssd,resting_hr_bpm,resp_rate_bpm,skin_temp_dev_c," +
                      "sleep_onset,wake_time,total_sleep_min,sleep_efficiency_pct," +
                      "light_min,deep_min,rem_min,wake_min,sleep_need_min," +
-                     "recovery_score,recovery_band,low_confidence,strain_0_21,trimp_load")
+                     "recovery_score,recovery_band,low_confidence,strain_0_21,trimp_load,sleep_score")
         let iso = ISO8601DateFormatter()
         for night in nights.sorted(by: { $0.nightDate < $1.nightDate }) {
             let day = days.first { Calendar.current.isDate($0.dayDate, inSameDayAs: night.nightDate) }
             lines.append([
                 "night",
                 iso.string(from: night.nightDate),
-                num(night.lnRMSSD), num(night.restingHR),
+                night.hrvAvailable ? num(night.lnRMSSD) : "", night.restingHRAvailable ? num(night.restingHR) : "",
                 opt(night.respiratoryRate), opt(night.skinTempDeviation),
                 night.sleepOnset.map { iso.string(from: $0) } ?? "",
                 night.wakeTime.map { iso.string(from: $0) } ?? "",
@@ -32,8 +32,9 @@ enum CSVExporter {
                 night.recoveryScore.map(num) ?? "",
                 night.recoveryBandRaw ?? "",
                 night.lowConfidence ? "1" : "0",
-                day.map { num($0.strain) } ?? "",
+                day.flatMap { $0.strainAvailable ? num($0.strain) : nil } ?? "",
                 day.map { num($0.trimpLoad) } ?? "",
+                opt(night.sleepScore),
             ].joined(separator: ","))
         }
         let url = FileManager.default.temporaryDirectory

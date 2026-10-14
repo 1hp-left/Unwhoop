@@ -4,9 +4,12 @@ import SwiftData
 // MARK: - UnwhoopApp
 
 @main
+@MainActor
 struct UnwhoopApp: App {
-    @State private var appState = AppState()
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var appState: AppState
     let container: ModelContainer
+    let backgroundSync: BackgroundSyncController
 
     init() {
         // Schema: benchmark model exists in DEBUG only — the production
@@ -16,6 +19,7 @@ struct UnwhoopApp: App {
             DaySummary.self,
             SyncState.self,
             AppSettings.self,
+            SensorMinute.self,
         ]
         #if DEBUG
         types.append(BenchmarkEntry.self)
@@ -31,6 +35,10 @@ struct UnwhoopApp: App {
         } catch {
             fatalError("UnwhoopApp: could not create ModelContainer: \(error)")
         }
+        let state = AppState()
+        state.configurePersistence(container.mainContext)
+        _appState = State(initialValue: state)
+        backgroundSync = BackgroundSyncController(state: state)
     }
 
     var body: some Scene {
@@ -40,6 +48,11 @@ struct UnwhoopApp: App {
                 .modelContainer(container)
                 .preferredColorScheme(.dark) // dark-first (PRD §6)
                 .tint(AppTheme.strain)
+                .onAppear { backgroundSync.becameActive() }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active { backgroundSync.becameActive() }
+                    if phase == .background { backgroundSync.schedule() }
+                }
         }
     }
 }

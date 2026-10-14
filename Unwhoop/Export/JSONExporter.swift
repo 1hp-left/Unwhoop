@@ -9,8 +9,11 @@ import Foundation
 enum JSONExporter {
     struct NightJSON: Codable {
         var date: Date
-        var lnRMSSD: Double
-        var restingHR: Double
+        var lnRMSSD: Double?
+        var restingHR: Double?
+        var sleepScore: Double?
+        var rrArtifactFraction: Double
+        var rrCoverage: Double
         var respiratoryRate: Double?
         var skinTempDeviationC: Double?
         var sleepOnset: Date?
@@ -32,7 +35,7 @@ enum JSONExporter {
 
     struct DayJSON: Codable {
         var date: Date
-        var strain: Double
+        var strain: Double?
         var trimpLoad: Double
         var minuteTRIMP: [Double]
         var isLive: Bool
@@ -73,7 +76,8 @@ enum JSONExporter {
 
     private static func nightJSON(_ n: NightSummary) -> NightJSON {
         NightJSON(
-            date: n.nightDate, lnRMSSD: n.lnRMSSD, restingHR: n.restingHR,
+            date: n.nightDate, lnRMSSD: n.hrvAvailable ? n.lnRMSSD : nil, restingHR: n.restingHRAvailable ? n.restingHR : nil,
+            sleepScore: n.sleepScore, rrArtifactFraction: n.rrArtifactFraction, rrCoverage: n.rrCoverage,
             respiratoryRate: n.respiratoryRate, skinTempDeviationC: n.skinTempDeviation,
             sleepOnset: n.sleepOnset, wakeTime: n.wakeTime,
             totalSleepMinutes: n.totalSleepMinutes, sleepEfficiency: n.sleepEfficiency,
@@ -88,7 +92,7 @@ enum JSONExporter {
     }
 
     private static func dayJSON(_ d: DaySummary) -> DayJSON {
-        DayJSON(date: d.dayDate, strain: d.strain, trimpLoad: d.trimpLoad,
+        DayJSON(date: d.dayDate, strain: d.strainAvailable ? d.strain : nil, trimpLoad: d.trimpLoad,
                 minuteTRIMP: d.minuteTRIMP, isLive: d.isLive)
     }
 }

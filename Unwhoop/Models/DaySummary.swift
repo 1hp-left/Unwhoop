@@ -20,6 +20,9 @@ final class DaySummary {
     var minuteTRIMP: [Double]
     /// True while the day is still accumulating (drives the LIVE dot).
     var isLive: Bool
+    var strainAvailable: Bool = true
+    var hrCoverage: Double = 1
+    var qualityReason: String?
 
     init(
         dayDate: Date,

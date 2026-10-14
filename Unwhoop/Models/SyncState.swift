@@ -14,6 +14,9 @@ final class SyncState {
     var connectionRaw: String // ConnectionState raw value
     var lastSyncMessage: String?
     var lastSampleCount: Int = 0
+    var historyMessage: String?
+    var rrMessage: String?
+    var scoringMessage: String?
 
     init(
         deviceName: String? = nil,
