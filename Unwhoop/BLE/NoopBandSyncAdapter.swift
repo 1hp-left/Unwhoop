@@ -99,7 +99,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     // Backfill ingest.
     private let frameDecoder = BandFrameDecoder()
     private var journal: SyncFrameJournal?
-    private var automaticEnabled = true
+    private var automaticEnabled = false
     private var maximumRecords = 300
     private var pendingAutomaticSync = false
     private var diagnostics: SyncDiagnostics?
@@ -111,6 +111,10 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     private var connectionTimeout: DispatchWorkItem?
     private var transferBudgetTimeout: DispatchWorkItem?
     private var lastBatteryPct: Int?
+    private var boundary = HistoryTransferBoundary()
+    private var commandWrites: [UInt8] = []
+    private var bankPauseTimeout: DispatchWorkItem?
+    private var requestedPauseReason: SyncStopReason = .recordBudget
 
     private static let backfillTimeoutSeconds: TimeInterval = 60
 
@@ -147,8 +151,15 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
 
     func configureAutomaticSync(enabled: Bool, maximumRecords: Int) {
         bleQueue.async { [weak self] in
-            self?.automaticEnabled = enabled
-            self?.maximumRecords = max(50, maximumRecords)
+            guard let self else { return }
+            let justEnabled = enabled && !self.automaticEnabled
+            self.automaticEnabled = enabled
+            self.maximumRecords = max(50, maximumRecords)
+            if self.syncing { self.scheduleTransferBudget() }
+            if justEnabled, self.central?.state == .poweredOn,
+               self.peripheral != nil || UserDefaults.standard.string(forKey: Self.lastBandKey) != nil {
+                self.requestSyncOnQueue()
+            }
         }
     }
 
@@ -193,7 +204,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         bleQueue.async { [weak self] in
             guard let self, self.central != nil else { return }
             if self.syncing {
-                self.finishSync(completed: false)
+                self.finishSync(completed: false, reason: .requestedStop, keepLink: false)
                 return
             }
             self.wantSyncOnHello = false
@@ -205,9 +216,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         }
     }
 
-    /// Opportunistic sync: connect (if needed), burst-download everything new,
-    /// disconnect. No continuous foreground BLE — connect, burst, disconnect
-    /// (PRD §7 battery budget).
+    /// Request another bounded transfer without tearing down a healthy link.
     func requestSync() {
         bleQueue.async { [weak self] in
             guard let self else { return }
@@ -293,6 +302,11 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         journal = nil
         transferBudgetTimeout?.cancel()
         transferBudgetTimeout = nil
+        bankPauseTimeout?.cancel()
+        bankPauseTimeout = nil
+        boundary = HistoryTransferBoundary()
+        requestedPauseReason = .recordBudget
+        commandWrites = []
     }
 
     private func scheduleConnectionTimeout() {
@@ -333,6 +347,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     private func writeCommand(cmd: UInt8, payload: [UInt8], withResponse: Bool) {
         guard let p = peripheral, let c = cmdChar else { return }
         let frame = puffinCommandFrame(cmd: cmd, seq: nextSeq(), payload: payload)
+        if withResponse { commandWrites.append(cmd) }
         p.writeValue(Data(frame), for: c, type: withResponse ? .withResponse : .withoutResponse)
     }
 
@@ -397,38 +412,52 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         }
         syncing = true
         chunk = []
+        boundary = HistoryTransferBoundary()
         diagnostics = SyncDiagnostics(startedAt: .now, historyCommandSent: true, historyStartMarkers: 0,
                                       historyCompleteSeen: false, historicalRecords: 0, realtimeRecords: 0,
                                       lastRRNotificationAt: nil, lastRRSampleAt: nil, rrValuesReceived: 0,
                                       notificationStates: Dictionary(uniqueKeysWithValues: puffinNotify.map { ($0.uuid.uuidString.lowercased(), $0.isNotifying) }),
                                       lastNotificationAt: [:])
+        diagnostics?.recordBudget = maximumRecords
         logger.info("Requesting SEND_HISTORICAL_DATA opcode 22; record budget \(self.maximumRecords)")
         syncProgress.send(.receiving(records: 0))
         connectionState.send(.syncing)
         // Payload MUST be [0x00], not empty — the strap serves zero frames
         // for an empty payload even with records pending (verified on-device).
         writeCommand(cmd: PuffinOpcode.sendHistoricalData, payload: [0x00], withResponse: true)
-        transferBudgetTimeout?.cancel()
-        let budget = DispatchWorkItem { [weak self] in self?.finishSync(completed: false) }
-        transferBudgetTimeout = budget
-        bleQueue.asyncAfter(deadline: .now() + (maximumRecords == Int.max ? 600 : 120), execute: budget)
+        scheduleTransferBudget()
         refreshBackfillTimeout()
+    }
+
+    private func scheduleTransferBudget() {
+        transferBudgetTimeout?.cancel()
+        diagnostics?.recordBudget = maximumRecords
+        let elapsed = Date().timeIntervalSince(diagnostics?.startedAt ?? .now)
+        let seconds = maximumRecords == Int.max ? 600.0 : 120.0
+        let budget = DispatchWorkItem { [weak self] in self?.pauseAtBudget(.timeBudget) }
+        transferBudgetTimeout = budget
+        bleQueue.asyncAfter(deadline: .now() + max(1, seconds - elapsed), execute: budget)
     }
 
     private func refreshBackfillTimeout() {
         backfillTimeout?.cancel()
         let timeout = DispatchWorkItem { [weak self] in
-            self?.finishSync(completed: false)
+            self?.finishSync(completed: false, reason: .quietTimeout)
         }
         backfillTimeout = timeout
         bleQueue.asyncAfter(deadline: .now() + Self.backfillTimeoutSeconds, execute: timeout)
     }
 
-    private func finishSync(completed: Bool) {
+    private func finishSync(completed: Bool, reason: SyncStopReason = .disconnected, keepLink: Bool = true) {
         guard syncing else { return }
         syncing = false
         backfillTimeout?.cancel()
         backfillTimeout = nil
+        transferBudgetTimeout?.cancel()
+        transferBudgetTimeout = nil
+        bankPauseTimeout?.cancel()
+        bankPauseTimeout = nil
+        diagnostics?.stopReason = completed ? .complete : reason
 
         // Type-47 records carry real unix seconds from the strap RTC, so an
         // identity clock mapping is safe here.
@@ -469,12 +498,33 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         onBatch?(batch)
         logger.info("Transfer ended: complete=\(completed), records=\(self.chunk.count), RR=\(streams.rr.count)")
 
-        connectionState.send(.connected)
-        if let p = peripheral {
-            central.cancelPeripheralConnection(p)
+        journal?.close()
+        journal = nil
+        chunk = []
+        diagnostics = nil
+        boundary = HistoryTransferBoundary()
+        if keepLink, peripheral?.state == .connected, readiness.isReady {
+            connectionState.send(.connected)
+        } else {
+            if let p = peripheral, p.state != .disconnected { central.cancelPeripheralConnection(p) }
+            resetSession()
+            connectionState.send(.disconnected)
         }
-        resetSession()
-        connectionState.send(.disconnected)
+    }
+
+    private func pauseAtBudget(_ reason: SyncStopReason) {
+        guard syncing, !boundary.pauseRequested else { return }
+        requestedPauseReason = reason
+        diagnostics?.recordBudget = maximumRecords
+        if boundary.requestPause(hasOpenBank: boundary.hasOpenBank) {
+            finishSync(completed: false, reason: reason)
+            return
+        }
+        // Give the current bank a bounded grace period to reach HISTORY_END.
+        // Never free an unreceived bank to force a successful transfer.
+        let timeout = DispatchWorkItem { [weak self] in self?.finishSync(completed: false, reason: reason, keepLink: false) }
+        bankPauseTimeout = timeout
+        bleQueue.asyncAfter(deadline: .now() + 60, execute: timeout)
     }
 
     // MARK: Frame handling (bleQueue only)
@@ -492,7 +542,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
             if syncing {
                 refreshBackfillTimeout()
                 do { try journal?.append(Data(frame)) } catch {
-                    finishSync(completed: false)
+                    finishSync(completed: false, reason: .storageFailure)
                     syncProgress.send(.failed("Sync storage failed: \(error.localizedDescription)"))
                     return
                 }
@@ -512,11 +562,12 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
                 if syncing {
                     chunk.append(parsed)
                     diagnostics?.realtimeRecords += 1
+                    syncProgress.send(.receiving(records: chunk.count))
                 }
             default:
                 break
             }
-            if syncing && chunk.count >= maximumRecords { finishSync(completed: false); return }
+            if syncing && chunk.count >= maximumRecords { pauseAtBudget(.recordBudget) }
         }
     }
 
@@ -526,7 +577,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         if let pct = parsed.parsed["battery_pct"]?.intValue {
             lastBatteryPct = pct
             if pct < 10 && syncing {
-                finishSync(completed: false)
+                finishSync(completed: false, reason: .lowBattery, keepLink: false)
                 syncProgress.send(.deferred("Band battery is below 10%. Charge the band; automatic sync will retry later."))
                 return
             }
@@ -541,6 +592,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         switch classifyHistoricalMeta(parsed) {
         case .start:
             diagnostics?.historyStartMarkers += 1
+            boundary.bankStarted()
             // Each history bank has a start marker. Keep earlier banks.
             break
         case .end:
@@ -550,20 +602,21 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
                 // Commit received frames to disk before allowing the band to
                 // release this bank. A killed app still retains the raw data.
                 do { try journal?.checkpoint() } catch {
-                    finishSync(completed: false)
+                    finishSync(completed: false, reason: .storageFailure)
                     syncProgress.send(.failed("Could not save received history: \(error.localizedDescription)"))
                     return
                 }
                 let endData = Array(rawFrame[21..<29])
                 let ack = whoop5HistoricalAckFrame(endData: endData, seq: nextSeq())
                 if let p = peripheral, let c = cmdChar {
+                    boundary.bankEnded()
+                    commandWrites.append(PuffinOpcode.historicalDataResult)
                     p.writeValue(Data(ack), for: c, type: .withResponse)
                 }
-                if chunk.count >= maximumRecords { finishSync(completed: false) }
             }
         case .complete:
             diagnostics?.historyCompleteSeen = true
-            finishSync(completed: true)
+            if boundary.completed() { finishSync(completed: true) }
         case .other:
             chunk.append(parsed)
         }
@@ -635,6 +688,7 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
         didFailToConnect peripheral: CBPeripheral,
         error: Error?
     ) {
+        guard self.peripheral?.identifier == peripheral.identifier else { return }
         failConnection("Could not connect to your band. Keep it nearby and try again.")
     }
 
@@ -643,10 +697,11 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
         didDisconnectPeripheral peripheral: CBPeripheral,
         error: Error?
     ) {
+        guard self.peripheral?.identifier == peripheral.identifier else { return }
         // Mid-sync drop: deliver what the strap already let us ack rather
         // than lose it; unacked records re-stream on the next sync.
         if syncing {
-            finishSync(completed: false)
+            finishSync(completed: false, reason: .disconnected, keepLink: false)
         } else if connectionState.value == .pairing {
             // Link dropped mid-pairing: the strap refused the bond (SMP
             // 0x05). Per the official app, the strap only accepts bonds in
@@ -676,6 +731,7 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
             readiness = BandSessionReadiness(requiredNotifications: Whoop5Gatt.notifySet)
             connectionState.send(.connecting)
             wantSyncOnHello = automaticEnabled
+            scheduleConnectionTimeout()
             if p.state == .connected { centralManager(central, didConnect: p) }
         }
     }
@@ -750,6 +806,20 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
         guard self.peripheral?.identifier == peripheral.identifier else { return }
         let cmdUUID = Whoop5Gatt.cmdWrite
         guard characteristic.uuid.uuidString.lowercased() == cmdUUID else { return }
+        if helloAcked {
+            guard !commandWrites.isEmpty else { return }
+            let command = commandWrites.removeFirst()
+            if error != nil {
+                if syncing && (command == PuffinOpcode.historicalDataResult || command == PuffinOpcode.sendHistoricalData) {
+                    finishSync(completed: false, reason: .commandFailure)
+                }
+                return
+            }
+            if command == PuffinOpcode.historicalDataResult, syncing, boundary.acknowledged() {
+                finishSync(completed: boundary.completeReceived, reason: requestedPauseReason)
+            }
+            return
+        }
         if error != nil {
             // Post-hello command failures aren't bonding issues — leave them
             // to the backfill timeout / disconnect handlers.
@@ -793,7 +863,7 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
             if let byte = data.first {
                 lastBatteryPct = Int(byte)
                 if byte < 10 && syncing {
-                    finishSync(completed: false)
+                    finishSync(completed: false, reason: .lowBattery, keepLink: false)
                     syncProgress.send(.deferred("Band battery is below 10%. Charge the band; automatic sync will retry later."))
                     return
                 }

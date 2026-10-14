@@ -39,6 +39,14 @@ struct DataView: View {
                 }
 
                 Section("Sync diagnostics") {
+                    if let received = sync?.lastReceivedAt {
+                        Text("Last data received: \(received.formatted(date: .abbreviated, time: .shortened))")
+                    }
+                    if let reason = sync?.transferMessage { Text(reason) }
+                    if !appState.syncStatus.isBusy, let next = appState.nextAutomaticSyncAt {
+                        Text("Next foreground attempt: \(next.formatted(date: .omitted, time: .shortened))")
+                    }
+                    if let hint = appState.automaticSyncHint { Text(hint) }
                     Text(sync?.historyMessage ?? "Waiting for a transfer to verify older history.")
                     Text(sync?.rrMessage ?? "No R-R diagnostic data yet.")
                     Text(sync?.scoringMessage ?? "Scores need sufficient overnight sensor coverage.")

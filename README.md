@@ -50,6 +50,14 @@ low phone or band battery backs off retries. Charging-only background processing
 requests complement CoreBluetooth restoration. **iOS decides background launch
 timing**, so an overnight offload is not guaranteed at a particular time.
 
+Version 1.1.1 preserves a healthy Bluetooth connection after a transfer instead
+of routinely disconnecting. Record/time budgets finish the current history bank
+and wait for its acknowledgement before pausing. Restored connections have a
+timeout. Foreground retries run every five minutes, or after one minute for a
+charging budget continuation; low-power backoff remains four hours. Data shows
+the last data-received time, the transfer stop reason, and the next foreground
+attempt. Background launch timing remains controlled by iOS.
+
 **Data → Sync diagnostics** reports whether actual older timestamps arrived,
 history command/marker information, R-R packet timing, and notification state.
 An empty transfer shows **waiting for data** and does not advance Last sync.

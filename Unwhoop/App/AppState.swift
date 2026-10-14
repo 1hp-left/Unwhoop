@@ -23,6 +23,9 @@ final class AppState {
     private(set) var pairingHandshakeComplete = false
     private(set) var syncStatus: SyncProgress = .idle
     private(set) var latestRawExport: URL?
+    var nextAutomaticSyncAt: Date?
+    var automaticSyncHint: String?
+    private(set) var hasBudgetContinuation = false
     @ObservationIgnored var onSyncFinished: ((Bool) -> Void)?
     @ObservationIgnored private var persistenceContext: ModelContext?
     @ObservationIgnored private var subscriptions = Set<AnyCancellable>()
@@ -225,10 +228,18 @@ final class AppState {
                 let link = try context.fetch(FetchDescriptor<SyncState>()).first ?? SyncState()
                 if link.modelContext == nil { context.insert(link) }
                 link.lastSampleCount = report.acceptedSamples
+                if report.acceptedSamples > 0 { link.lastReceivedAt = .now }
                 link.batteryPercent = batch.batteryPercent ?? link.batteryPercent
                 if batch.isComplete && report.acceptedSamples > 0 { link.lastSync = .now }
-                let outcome: SyncProgress = report.acceptedSamples == 0 ? .waitingForData : .completed(samples: report.acceptedSamples, complete: batch.isComplete)
+                let outcome: SyncProgress
+                if report.acceptedSamples == 0 { outcome = .waitingForData }
+                else if !batch.isComplete, let reason = batch.diagnostics?.stopReason, reason.isBudgetPause {
+                    outcome = .paused(samples: report.acceptedSamples, reason: reason.explanation)
+                } else { outcome = .completed(samples: report.acceptedSamples, complete: batch.isComplete) }
+                hasBudgetContinuation = !batch.isComplete && report.acceptedSamples > 0
+                    && batch.diagnostics?.stopReason?.isBudgetPause == true
                 link.lastSyncMessage = outcome.label
+                link.transferMessage = batch.diagnostics?.stopReason?.explanation
                 link.historyMessage = report.history
                 link.rrMessage = report.rr
                 link.scoringMessage = report.message

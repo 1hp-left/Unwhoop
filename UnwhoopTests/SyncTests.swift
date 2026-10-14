@@ -17,6 +17,74 @@ private final class SyncTestBand: BandSyncProtocol {
 }
 
 final class SyncTests: XCTestCase {
+    func testBudgetPauseWaitsForBankEndAndWriteAcknowledgement() {
+        var boundary = HistoryTransferBoundary()
+        boundary.bankStarted()
+        XCTAssertFalse(boundary.requestPause(hasOpenBank: boundary.hasOpenBank), "A record limit cannot stop inside a bank")
+        boundary.bankEnded()
+        XCTAssertEqual(boundary.pendingAcknowledgements, 1)
+        XCTAssertTrue(boundary.acknowledged(), "Pause only after the bank's ACK write is confirmed")
+        XCTAssertFalse(boundary.completeReceived)
+    }
+
+    func testHistoryCompleteWaitsForAllOutstandingAcknowledgements() {
+        var boundary = HistoryTransferBoundary()
+        boundary.bankEnded(); boundary.bankEnded()
+        XCTAssertFalse(boundary.completed())
+        XCTAssertFalse(boundary.acknowledged())
+        XCTAssertTrue(boundary.acknowledged())
+        XCTAssertTrue(boundary.completeReceived)
+    }
+
+    func testLiveOnlyBudgetPauseDoesNotWaitForNonexistentBank() {
+        var boundary = HistoryTransferBoundary()
+        XCTAssertTrue(boundary.requestPause(hasOpenBank: false))
+    }
+
+    func testChargingContinuationDoesNotWaitThirtyMinutes() {
+        XCTAssertEqual(AutomaticSyncPolicy.foregroundInterval(charging: true, lowPower: false, continuing: true), 60)
+        XCTAssertEqual(AutomaticSyncPolicy.foregroundInterval(charging: true, lowPower: false, continuing: false), 300)
+        XCTAssertEqual(AutomaticSyncPolicy.foregroundInterval(charging: false, lowPower: false, continuing: true), 300)
+        XCTAssertEqual(AutomaticSyncPolicy.foregroundInterval(charging: true, lowPower: true, continuing: true), 14_400)
+    }
+
+    @MainActor
+    func testRepeatedPartialTransfersUpdateSavedDataWithoutClaimingFullSync() async throws {
+        let schema = Schema([AppSettings.self, SyncState.self, SensorMinute.self, NightSummary.self, DaySummary.self])
+        let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let band = SyncTestBand()
+        let state = AppState(sync: band, rawStore: RawSyncStore(directory: directory))
+        state.configurePersistence(ModelContext(container))
+        let now = Date()
+        var diag = SyncDiagnostics(startedAt: now, historyCommandSent: true, historyStartMarkers: 1,
+                                   historyCompleteSeen: false, historicalRecords: 300, realtimeRecords: 0,
+                                   rrValuesReceived: 0, notificationStates: [:], lastNotificationAt: [:])
+        diag.stopReason = .recordBudget; diag.recordBudget = 300
+        let first = expectation(description: "first partial stored")
+        state.onSyncFinished = { success in XCTAssertFalse(success); first.fulfill() }
+        band.onBatch?(RawSampleBatch(heartRates: [(now.addingTimeInterval(-600), 65)], rrIntervals: [], motionFrames: [], skinTemperatures: [], batteryPercent: 80, isComplete: false, diagnostics: diag))
+        await fulfillment(of: [first], timeout: 15)
+        XCTAssertEqual(state.syncStatus, .paused(samples: 1, reason: SyncStopReason.recordBudget.explanation))
+        XCTAssertTrue(state.hasBudgetContinuation)
+        let second = expectation(description: "second partial stored")
+        state.onSyncFinished = { _ in second.fulfill() }
+        state.requestSync()
+        XCTAssertEqual(band.requests, 1)
+        band.onBatch?(RawSampleBatch(heartRates: [(now.addingTimeInterval(-120), 66), (now.addingTimeInterval(-119), 67)], rrIntervals: [], motionFrames: [], skinTemperatures: [], batteryPercent: 80, isComplete: false, diagnostics: diag))
+        await fulfillment(of: [second], timeout: 15)
+        let context = ModelContext(container)
+        let link = try XCTUnwrap(context.fetch(FetchDescriptor<SyncState>()).first)
+        XCTAssertEqual(link.lastSampleCount, 2)
+        XCTAssertNotNil(link.lastReceivedAt)
+        XCTAssertNil(link.lastSync)
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<SensorMinute>()), 2)
+        XCTAssertTrue(link.transferMessage?.contains("record budget") == true)
+        XCTAssertTrue(state.syncStatus.label?.contains("2 samples saved") == true)
+        withExtendedLifetime(state) {}
+    }
+
     func testCommandAcknowledgementsCannotRestartHello() {
         var ready = BandSessionReadiness(requiredNotifications: ["history", "metadata"])
         XCTAssertTrue(ready.acceptHello())
