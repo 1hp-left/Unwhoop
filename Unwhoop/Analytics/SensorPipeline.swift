@@ -284,9 +284,9 @@ final class SensorPipeline {
                 else if !quality.isUsable { failure = quality.reason ?? failure }
             }
         }
-        let tail = staged.suffix(30)
-        let closed = wake < n - 20 && tail.filter { $0.stage == .wake }.count >= 20
-        let onsetCovered = onset >= 10 && staged.prefix(onset).filter { $0.stage == .wake }.count >= 10
+        let observedWakeAtEnd = (max(0, n - 30)..<n).filter { known[$0] && staged[$0].stage == .wake }.count
+        let closed = wake < n - 20 && observedWakeAtEnd >= 20
+        let onsetCovered = onset >= 10 && (0..<onset).filter { known[$0] && staged[$0].stage == .wake }.count >= 10
         var longestGap = 0, run = 0
         for available in known { run = available ? 0 : run + 1; longestGap = max(longestGap, run) }
         let hrvOK = selected != nil && !globalCleaning.lowConfidence

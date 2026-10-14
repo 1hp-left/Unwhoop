@@ -140,6 +140,24 @@ final class ScoringPipelineTests: XCTestCase {
     }
 
     @MainActor
+    func testMissingMotionCannotBecomeObservedWakefulness() throws {
+        let store = try container()
+        let morning = calendar.startOfDay(for: Date())
+        let source = nightBatch(morning: morning)
+        let missingStart = morning.addingTimeInterval(2 * 3600 - 8 * 60)
+        let batch = RawSampleBatch(heartRates: source.heartRates, rrIntervals: source.rrIntervals,
+                                   motionFrames: source.motionFrames.filter { $0.date < missingStart },
+                                   skinTemperatures: [], batteryPercent: 80, isComplete: true)
+        _ = try SensorPipeline(container: store, calendar: calendar).ingest(batch, now: morning.addingTimeInterval(2 * 3600))
+        let night = try XCTUnwrap(ModelContext(store).fetch(FetchDescriptor<NightSummary>()).first)
+        XCTAssertGreaterThan(night.sleepCoverage, 0.8)
+        XCTAssertTrue(night.lowConfidence)
+        XCTAssertNil(night.sleepScore)
+        XCTAssertNil(night.recoveryScore)
+        XCTAssertTrue(night.confidenceReason?.contains("still open") == true)
+    }
+
+    @MainActor
     func testRecoveryUsesSevenPriorUsableNights() throws {
         let store = try container()
         let context = ModelContext(store)
