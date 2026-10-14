@@ -1,87 +1,60 @@
-# BUILD_NOTES — what is verified and what is not
+# Build and scoring verification
 
-Scaffold written 2026-10-09. Read this before trusting anything.
+Version 1.1.0 (6), October 13, 2026. GitHub Actions uses Xcode on macOS to
+compile the device app, run simulator XCTest, export dashboard screenshots,
+validate the packaged permission/background/icon metadata, and produce an
+unsigned IPA for Sideloadly. The local Windows environment cannot run Xcode.
 
-## Explicitly NOT verified
+## Implemented
 
-- **The Swift was never compiled.** This machine is Linux; there is no Xcode
-  here. `project.yml`, every `.swift` file, the plist, and the privacy
-  manifest are hand-written and uncompiled. Expect syntax/API issues on first
-  Xcode build — budget a cleanup pass.
-- **BLE is a skeleton.** `NoopBandSyncAdapter` compiles against CoreBluetooth
-  but every band operation is a `TODO(fork)` trap until `Vendor/Noop/` is
-  vendored per `FORK_PLAN.md`. No scan, connect, or sync works yet.
-- **The simulator cannot do Bluetooth.** Milestone 1's gate — overnight
-  offload completing on a physical iPhone with no user interaction — must pass
-  on device before any score is trusted. No algorithm work should start until
-  raw R-R/motion land on the phone reliably.
-- **Analytics are implemented but the Swift is uncompiled.** `Unwhoop/Analytics/`
-  now contains real implementations ported 1:1 from the tested Python
-  reference (`analytics-py/unwhoop/` — 27/27 tests green, every computation
-  hand-verified). The port is faithful by construction, but Swift has never
-  been compiled here — expect a syntax/API cleanup pass in Xcode. The DSP
-  path in `RespiratoryEstimator` (spline → bandpass → peak-detect, pure
-  Swift) must additionally be validated on-device against the Python
-  reference before trusting breathing-rate readings.
-- **No live data has ever flowed through this.** All UI states beyond the
-  empty/baseline-countdown states are unexercised.
+- Batches persist to SwiftData before sleep and daily analytics. Repeated
+  backfill is idempotent; raw archives and CRC-checked journals recover
+  interrupted processing. Minute sensor pages retain fourteen days.
+- All HRV inputs pass `RRAnalysis.cleanRR`. Five-minute overnight windows need
+  at least 120 clean intervals, 80% beat-duration coverage, no packet gap over
+  ten seconds, and plausible total beat duration. More than 15% artifacts in
+  the night's R-R data withholds HRV-based sleep and recovery scores.
+- Sleep uses observed HR and motion in thirty-second epochs. At least three
+  observed hours, 80% coverage, no ten-minute holes, observed wakefulness
+  before onset, and ten minutes of wakefulness afterward are required to
+  finalize scores. Sleep stages remain heuristic estimates.
+- Sleep scoring initially uses sufficiency and efficiency; consistency and
+  restfulness join after three prior usable nights. Recovery requires seven
+  prior usable baseline nights. Respiratory rate is estimated from cleaned
+  R-R in quiet sleep windows and may remain unavailable for weak signals.
+- Strain requires an explicit maximum HR and male/female TRIMP coefficient
+  choice in Data, observed resting HR, and 80% daily HR coverage. Missing
+  data cannot be treated as zero activity.
+- Backfill starts on each connect/restoration after the existing bond and
+  notification handshake. Battery transfers are capped; full offloads use
+  charging power. Low phone/band battery backs off automatic work. Charging
+  BGProcessingTask requests have no guaranteed launch time.
+- History diagnostics distinguish actual older timestamps from live-window
+  packets. R-R diagnostics record source subscription state and last packet
+  timing. Empty transfers stay waiting for data without changing Last sync.
 
-## Data import: user uploads, nothing leaves the phone
+## Evidence and remaining device checks
 
-- **WHOOP export import is in-app and on-device** (`Unwhoop/Import/WhoopExportImport.swift`,
-  DEBUG-only like all benchmark tooling). Flow: user requests the WHOOP member
-  data export, unzips `my_whoop_data_*.zip` in the Files app, then picks
-  `physiological_cycles.csv` (+ optionally `sleeps.csv`) from a document
-  picker in Data > Benchmark entry (dev). The parser is header-name-driven
-  and tolerant (BOM/quotes/CRLF, localized filenames, `skin_temp_f` vs
-  `skin_temp_celsius`-style variants); rows pair to `BenchmarkEntry` by local
-  calendar day with upsert semantics (fills blanks, never overwrites).
-- **Privacy posture, explicit:** the app makes zero network requests, so there
-  is no code path by which health data could reach the developer, the
-  assistant, or anyone else. The user never hands health data to anyone —
-  they upload it into their own app, on their own phone. If algorithm tuning
-  help is ever wanted, only the on-device agreement numbers (bias, limits of
-  agreement) need to be shared — never raw data.
-- Column schema verified against Noop's `WhoopExportImporter` (same files).
-  Like the rest of the Swift, uncompiled here — validate the import against a
-  real export on-device.
+The user verified working pairing and real HR/motion/temperature/R-R frames
+on their WHOOP 5.0. Their three supplied transfers contained only live-window
+ data; one had sparse R-R and around 20% artifacts. Such data must not produce
+ a nightly score.
 
-## PRD ambiguities resolved (and how)
+Simulator tests cover synthetic overnight sleep/strain/respiration, recovery
+baseline gating, artifact rejection, sparse/stopped/duplicated R-R, still-open
+sleep, repeated ingest, empty transfer behavior, prior pairing regression,
+history opcode encoding, history timestamp classification, independent GATT
+reassembly, and battery policy. Synthetic tests establish code behavior, not
+measurement accuracy against a physical strap or WHOOP.
 
-1. **Analytics signatures** (`score(night:baselines:)`, `strain(for:day:)`,
-   `estimate(from:)`): parameter types were unspecified, so the scaffold
-   defines them — `NightSummary`/`Baselines`, `StrainDayInput`,
-   `RespirationInput`. Output types (`RecoveryResult`, `DayStrain`,
-   `[SleepEpoch]`) likewise.
-2. **Stale threshold**: PRD §5.1 says banner if last sync > 12h — used 12h.
-3. **Recovery bands**: 67–100 / 34–66 / 0–33 from PRD §5.3, centralized in
-   `RecoveryBand`.
-4. **DaySummary "per-minute TRIMP aggregates ref"**: stored inline as
-   `[Double] minuteTRIMP` (~11 KB/day, inside the storage budget).
-5. **HealthKit HRV**: HealthKit defines an SDNN type but no RMSSD type.
-   The writer exposes an SDNN-only path and does NOT write LnRMSSD under an
-   SDNN label — no mislabeled data.
-6. **Biological sex for the TRIMP constant**: PRD §5.5 gives male/female
-   formulas but no source; the v1 settings surface is fixed (units, HealthKit
-   toggle, reset baseline, about), so `StrainDayInput` carries `sex` and the
-   source is an open question (below).
-7. **Sleep need**: PRD shows "need: 8h 05m" but never says where need comes
-   from; `NightSummary.sleepNeedMinutes` is pipeline-owned, formula TBD by
-   the analytics workstream.
-8. **Benchmark strip**: rendered in DEBUG only when paired rows actually
-   exist — no empty pleading, per PRD §5.6.
-9. **"Recovery ready" notification**: PRD §5.1 wants a local notification when
-   nightly computation finishes; not scaffolded — needs BackgroundTasks
-   wiring in milestone 1 alongside the sync engine.
-10. **Delta arrows**: the authoritative baselines live in the pipeline; the
-    Today view's arrows use a cheap display-only rolling mean with that
-    documented, so the UI is real without duplicating scoring logic.
+Physical overnight backfill and unattended iOS background launches still need
+verification. Wear the strap, leave Bluetooth enabled and the phone charging,
+then open the app after waking. Data should report older history timestamps.
+If only live-window data arrives, overnight scores cannot be reconstructed.
+No returned history alone cannot distinguish an empty strap buffer from a
+device/protocol issue; use the command/marker/timestamp diagnostics.
 
-## Open questions (for Anay / the analytics workstream)
-
-- Where does `BiologicalSex` for strain come from? (Settings surface is
-  fixed by the PRD; HealthKit is read-nothing by design.)
-- Sleep-need formula for `sleepNeedMinutes`.
-- Final app name (Unwhoop is a working title).
-- The WHOOP data export (`my_whoop_data_*.zip`) — request NOW while
-  subscribed; it is use-it-or-lose-it when the membership lapses.
+Sleep/recovery/respiration remain custom estimates. No validated claim of
+clinical accuracy or equivalence to WHOOP's proprietary algorithm is made.
+WHOOP export imports and HealthKit behavior require separate device testing;
+RMSSD must never be written under HealthKit's SDNN measurement type.

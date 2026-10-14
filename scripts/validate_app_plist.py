@@ -46,6 +46,9 @@ def validate(plist, source, version, build):
         value = plist.get(key)
         if not isinstance(value, str) or not value or "$(" in value:
             raise ValueError(f"Missing or unresolved {key}")
+    primary_icon = plist.get("CFBundleIcons", {}).get("CFBundlePrimaryIcon", {})
+    if primary_icon.get("CFBundleIconName") != "AppIcon":
+        raise ValueError("Missing bundled AppIcon metadata")
 
 
 def main():

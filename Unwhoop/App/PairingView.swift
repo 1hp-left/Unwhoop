@@ -146,7 +146,7 @@ private struct PairingIdle: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "bluetooth")
+            Image(systemName: "antenna.radiowaves.left.and.right")
                 .font(.system(size: 56))
                 .foregroundStyle(.secondary)
             Text("Put your strap in pairing mode first — tap it (or slide it on the charger) until the light flashes blue. Then keep it nearby and charged, and make sure it's NOT connected to the WHOOP app.")

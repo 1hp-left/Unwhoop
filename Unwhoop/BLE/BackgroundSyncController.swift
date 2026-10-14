@@ -25,6 +25,7 @@ final class BackgroundSyncController {
     private let logger = Logger(subsystem: "com.unwhoop.app", category: "BackgroundSync")
     private let lastAttemptKey = "com.unwhoop.auto.lastAttempt"
     private var previousCharging = false
+    private var configuredBudget: Int?
 
     init(state: AppState) {
         self.state = state
@@ -59,17 +60,21 @@ final class BackgroundSyncController {
     private var lowPower: Bool { ProcessInfo.processInfo.isLowPowerModeEnabled || (UIDevice.current.batteryLevel >= 0 && UIDevice.current.batteryLevel < 0.2) }
 
     private func configurePower() {
-        state.sync.configureAutomaticSync(enabled: true, maximumRecords: AutomaticSyncPolicy.recordBudget(charging: charging, lowPower: lowPower))
+        let budget = AutomaticSyncPolicy.recordBudget(charging: charging, lowPower: lowPower)
+        guard configuredBudget != budget else { return }
+        configuredBudget = budget
+        state.sync.configureAutomaticSync(enabled: true, maximumRecords: budget)
     }
 
-    func becameActive() {
+    func becameActive(foregroundActivation: Bool = true) {
         configurePower()
-        schedule()
+        if foregroundActivation { schedule() }
         guard state.hasPairedBand, !state.syncStatus.isBusy else { return }
         let last = UserDefaults.standard.object(forKey: lastAttemptKey) as? Date ?? .distantPast
         let escalation = charging && !previousCharging && !lowPower
         previousCharging = charging
-        guard escalation || Date().timeIntervalSince(last) >= AutomaticSyncPolicy.retryInterval(charging: charging, lowPower: lowPower) else { return }
+        let interval = foregroundActivation && !lowPower ? 5 * 60 : AutomaticSyncPolicy.retryInterval(charging: charging, lowPower: lowPower)
+        guard escalation || Date().timeIntervalSince(last) >= interval else { return }
         UserDefaults.standard.set(Date(), forKey: lastAttemptKey)
         state.requestSync()
     }
@@ -82,7 +87,7 @@ final class BackgroundSyncController {
             default: break
             }
         }
-        if UIApplication.shared.applicationState == .active { becameActive() }
+        if UIApplication.shared.applicationState == .active { becameActive(foregroundActivation: false) }
     }
 
     func schedule() {
@@ -107,6 +112,7 @@ final class BackgroundSyncController {
             }
         }
         // The scheduler grants this request only while external power exists.
+        configuredBudget = Int.max
         state.sync.configureAutomaticSync(enabled: true, maximumRecords: Int.max)
         UserDefaults.standard.set(Date(), forKey: lastAttemptKey)
         state.requestSync()

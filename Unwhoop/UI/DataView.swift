@@ -376,6 +376,7 @@ private struct SettingsForm: View {
                         for night in nights { modelContext.delete(night) }
                         for day in days { modelContext.delete(day) }
                         settings.baselineStartDate = .now
+                        saveProfile()
                     }
                 } message: {
                     Text("Deletes all nights and days. The 7-day baseline rebuilds from zero.")
@@ -385,8 +386,9 @@ private struct SettingsForm: View {
         .onAppear { maxHRText = settings?.maximumHeartRate.map { String(Int($0)) } ?? "" }
         .onChange(of: maxHRText) { _, value in
             guard let settings else { return }
-            if value.isEmpty { settings.maximumHeartRate = nil; saveProfile() }
+            if value.isEmpty, settings.maximumHeartRate != nil { settings.maximumHeartRate = nil; saveProfile() }
             else if let number = Double(value), (80...240).contains(number) {
+                guard settings.maximumHeartRate != number else { return }
                 settings.maximumHeartRate = number; saveProfile()
             }
         }

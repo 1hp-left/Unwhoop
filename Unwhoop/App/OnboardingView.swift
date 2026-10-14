@@ -58,7 +58,7 @@ struct OnboardingView: View {
                             saveError = error.localizedDescription
                         }
                     } label: {
-                        Label("Pair your WHOOP 5.0", systemImage: "bluetooth")
+                        Label("Pair your WHOOP 5.0", systemImage: "antenna.radiowaves.left.and.right")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)

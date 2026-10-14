@@ -13,7 +13,8 @@ struct RRWindowQuality {
         let ordered = values.filter { $0.date >= window.start && $0.date < window.end }.sorted { $0.date < $1.date }
         let result = RRAnalysis.cleanRR(ordered.map { $0.value * 1000 })
         let count = result.cleaned.count - result.nRemoved
-        let coverage = min(1, result.cleaned.filter { $0.isFinite && $0 > 0 }.reduce(0, +) / 1000 / max(window.duration, 1))
+        let coveredDuration = result.cleaned.filter { $0.isFinite && $0 > 0 }.reduce(0, +) / 1000 / max(window.duration, 1)
+        let coverage = min(1, coveredDuration)
         let dates = Array(Set(ordered.map(\.date))).sorted()
         let between = zip(dates, dates.dropFirst()).map { $1.timeIntervalSince($0) }.max() ?? window.duration
         let edge = max(dates.first?.timeIntervalSince(window.start) ?? window.duration,
@@ -23,6 +24,7 @@ struct RRWindowQuality {
         if ordered.isEmpty { reason = "No R-R intervals received for this window." }
         else if result.lowConfidence { reason = String(format: "R-R artifacts %.0f%% exceed the 15%% limit.", result.artifactFraction * 100) }
         else if count < minimumClean { reason = "Only \(count) clean R-R intervals; at least \(minimumClean) required." }
+        else if coveredDuration > 1.2 { reason = "R-R timing exceeds the window duration; possible duplicated packets." }
         else if coverage < 0.8 || gap > 10 { reason = "R-R coverage is incomplete or has gaps longer than 10 seconds." }
         else { reason = nil }
         return RRWindowQuality(clean: result.cleaned, cleanCount: count, coverage: coverage,
@@ -149,6 +151,7 @@ final class SensorPipeline {
     private func rebuild(context: ModelContext, affectedDates: [Date], now: Date) throws -> String {
         guard !affectedDates.isEmpty else { return "Waiting for stored sensor data." }
         let settings = try context.fetch(FetchDescriptor<AppSettings>()).first
+        let resetDate = settings?.baselineStartDate ?? .distantPast
         var nights = try context.fetch(FetchDescriptor<NightSummary>())
         var days = try context.fetch(FetchDescriptor<DaySummary>())
         let dayDates = Set(affectedDates.map { calendar.startOfDay(for: $0) }).sorted()
@@ -165,8 +168,9 @@ final class SensorPipeline {
             let priorDay = calendar.date(byAdding: .day, value: -1, to: morning) ?? morning
             let start = calendar.date(bySettingHour: 18, minute: 0, second: 0, of: priorDay) ?? priorDay
             let end = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: morning) ?? morning
-            let signals = try read(context, start: start, end: min(end, now))
-            if let calculated = calculateNight(signals, morning: morning, past: nights.filter { $0.nightDate < morning }, settings: settings, previousStrain: days.first(where: { calendar.isDate($0.dayDate, inSameDayAs: priorDay) })?.strain ?? 0) {
+            guard end > resetDate else { continue }
+            let signals = try read(context, start: max(start, resetDate), end: min(end, now))
+            if let calculated = calculateNight(signals, morning: morning, past: nights.filter { $0.nightDate < morning && $0.nightDate >= calendar.startOfDay(for: resetDate) }, settings: settings, previousStrain: days.first(where: { calendar.isDate($0.dayDate, inSameDayAs: priorDay) && $0.strainAvailable })?.strain ?? 0) {
                 if let old = nights.first(where: { calendar.isDate($0.nightDate, inSameDayAs: morning) }) {
                     copyNight(calculated, into: old)
                 } else { context.insert(calculated); nights.append(calculated) }
@@ -175,7 +179,8 @@ final class SensorPipeline {
         var strainReady = false
         for date in dayDates {
             let end = calendar.date(byAdding: .day, value: 1, to: date) ?? date.addingTimeInterval(86_400)
-            let signals = try read(context, start: date, end: end)
+            guard end > resetDate else { continue }
+            let signals = try read(context, start: max(date, resetDate), end: end)
             guard signals.hr.count >= 60 else { continue }
             let row = days.first(where: { calendar.isDate($0.dayDate, inSameDayAs: date) }) ?? DaySummary(dayDate: date)
             if row.modelContext == nil { context.insert(row); days.append(row) }
@@ -214,6 +219,10 @@ final class SensorPipeline {
             strainReady = true
         }
         try context.save()
+        let retention = now.addingTimeInterval(-14 * 86_400)
+        let expired = try context.fetch(FetchDescriptor<SensorMinute>(predicate: #Predicate { $0.date < retention }))
+        for row in expired { context.delete(row) }
+        if !expired.isEmpty { try context.save() }
         let latest = nights.sorted { $0.nightDate > $1.nightDate }.first
         var message = latest.map { $0.confidenceReason ?? "Sleep and overnight vitals calculated. Recovery needs seven prior usable baseline nights." }
             ?? "Need at least three hours of overnight heart-rate and motion coverage to estimate sleep."
@@ -263,7 +272,7 @@ final class SensorPipeline {
         var failure = "No five-minute quiet window has sufficient clean R-R coverage."
         if n >= 10 {
             for i in stride(from: 0, through: n - 10, by: 10) {
-                guard known[i..<(i+10)].allSatisfy({ $0 }),
+                guard i >= onset, i + 10 <= wake + 1, known[i..<(i+10)].allSatisfy({ $0 }),
                       features[i..<(i+10)].allSatisfy({ SleepStager.activityIndex(fromG: $0.motionMagnitude) < 0.15 }) else { continue }
                 let interval = DateInterval(start: start.addingTimeInterval(Double(i) * 30), duration: 300)
                 let quality = RRWindowQuality.evaluate(rr, window: interval)

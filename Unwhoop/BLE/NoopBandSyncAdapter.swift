@@ -525,6 +525,11 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         // On 5.0 battery_pct is a direct percent (no deci-percent scaling).
         if let pct = parsed.parsed["battery_pct"]?.intValue {
             lastBatteryPct = pct
+            if pct < 10 && syncing {
+                finishSync(completed: false)
+                syncProgress.send(.deferred("Band battery is below 10%. Charge the band; automatic sync will retry later."))
+                return
+            }
             if pct < 20 {
                 connectionState.send(.lowBattery)
             }
@@ -575,6 +580,9 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
             if pendingAutomaticSync {
                 pendingAutomaticSync = false
                 requestSyncOnQueue()
+            } else if automaticEnabled, peripheral == nil,
+                      UserDefaults.standard.string(forKey: Self.lastBandKey) != nil {
+                requestSyncOnQueue()
             }
             if scanRequested {
                 connectionState.send(.scanning)
@@ -587,7 +595,7 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
             if syncing { finishSync(completed: false) }
             resetSession()
             connectionState.send(.disconnected)
-            syncProgress.send(.failed("Bluetooth is off. Turn it on and try Sync now again."))
+            syncProgress.send(.failed("Bluetooth is off. Turn it on to resume automatic sync."))
         case .unauthorized, .unsupported:
             resetSession()
             syncProgress.send(.failed("Bluetooth access is unavailable. Check Unwhoop permissions in Settings."))
@@ -784,6 +792,11 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
             // Standard battery level: single uint8 percent.
             if let byte = data.first {
                 lastBatteryPct = Int(byte)
+                if byte < 10 && syncing {
+                    finishSync(completed: false)
+                    syncProgress.send(.deferred("Band battery is below 10%. Charge the band; automatic sync will retry later."))
+                    return
+                }
                 if byte < 20 {
                     connectionState.send(.lowBattery)
                 }

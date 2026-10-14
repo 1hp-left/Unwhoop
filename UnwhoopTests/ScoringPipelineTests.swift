@@ -56,6 +56,15 @@ final class ScoringPipelineTests: XCTestCase {
         XCTAssertTrue(quality.lnRMSSD?.isFinite == true)
     }
 
+    func testDuplicatedBeatTimingCannotProduceHRV() {
+        let start = Date(timeIntervalSince1970: 1_000_000)
+        let values = (0..<600).map { StoredSyncBatch.Value(date: start.addingTimeInterval(Double($0 / 2)), value: 0.85 + 0.01 * sin(Double($0))) }
+        let quality = RRWindowQuality.evaluate(values, window: DateInterval(start: start, duration: 300))
+        XCTAssertFalse(quality.isUsable)
+        XCTAssertNil(quality.lnRMSSD)
+        XCTAssertTrue(quality.reason?.contains("duplicated") == true)
+    }
+
     private func nightBatch(morning: Date, badRR: Bool = false) -> RawSampleBatch {
         let start = morning.addingTimeInterval(-2 * 3600)
         let seconds = 4 * 3600
@@ -66,7 +75,7 @@ final class ScoringPipelineTests: XCTestCase {
             let date = start.addingTimeInterval(Double(i))
             let awake = i < 1200 || i >= seconds - 1200
             hr.append((date, awake ? 95 : 60 + 0.5 * sin(Double(i) / 50)))
-            rr.append((date, badRR && i % 5 == 0 ? 2.4 : 0.85 + 0.03 * sin(Double(i) / 15)))
+            rr.append((date, badRR && i % 5 == 0 ? 2.4 : (awake ? 0.63 : 1.0) + 0.03 * sin(Double(i) * .pi / 2)))
             motion.append(MotionFrame(date: date, x: awake && i % 2 == 0 ? 0.8 : 0, y: 0, z: 1, activityClass: nil, stepCount: nil))
         }
         return RawSampleBatch(heartRates: hr, rrIntervals: rr, motionFrames: motion, skinTemperatures: [], batteryPercent: 80, isComplete: true)
@@ -86,6 +95,8 @@ final class ScoringPipelineTests: XCTestCase {
         let night = try XCTUnwrap(fresh.fetch(FetchDescriptor<NightSummary>()).first)
         XCTAssertFalse(night.lowConfidence, night.confidenceReason ?? "")
         XCTAssertTrue(night.hrvAvailable)
+        let respiration = try XCTUnwrap(night.respiratoryRate)
+        XCTAssertTrue((10...20).contains(respiration))
         XCTAssertNotNil(night.sleepScore)
         XCTAssertNil(night.recoveryScore, "First night cannot have seven prior baselines")
         XCTAssertGreaterThan(night.totalSleepMinutes, 90)
@@ -108,6 +119,24 @@ final class ScoringPipelineTests: XCTestCase {
         XCTAssertNil(night.sleepScore)
         XCTAssertNil(night.recoveryScore)
         XCTAssertNil(night.respiratoryRate)
+    }
+
+    @MainActor
+    func testStillSleepingNightCannotFinalizeScores() throws {
+        let store = try container()
+        let morning = calendar.startOfDay(for: Date())
+        let cutoff = morning.addingTimeInterval(3600)
+        let source = nightBatch(morning: morning)
+        let partial = RawSampleBatch(heartRates: source.heartRates.filter { $0.date < cutoff },
+                                     rrIntervals: source.rrIntervals.filter { $0.date < cutoff },
+                                     motionFrames: source.motionFrames.filter { $0.date < cutoff },
+                                     skinTemperatures: [], batteryPercent: 80, isComplete: true)
+        _ = try SensorPipeline(container: store, calendar: calendar).ingest(partial, now: cutoff)
+        let night = try XCTUnwrap(ModelContext(store).fetch(FetchDescriptor<NightSummary>()).first)
+        XCTAssertTrue(night.lowConfidence)
+        XCTAssertNil(night.sleepScore)
+        XCTAssertNil(night.recoveryScore)
+        XCTAssertTrue(night.confidenceReason?.contains("still open") == true)
     }
 
     @MainActor

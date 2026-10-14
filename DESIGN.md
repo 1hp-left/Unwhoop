@@ -18,3 +18,8 @@ exports, and settings; Trends contains the existing date-range charts.
 Missing scores show a dash and an explanation. Never fabricate measurements,
 stress scores, coaching, or progress. Sync shows actual stages and records;
 successful completion requires saved data. Keep partial transfers distinct.
+
+Sync is automatic; show its status without a manual Sync Now button. Show
+scoring/backfill/R-R diagnostics in Data. Strain settings require an explicit
+maximum HR and physiology; unavailable values stay blank in exports too.
+Use an original white U with a blue pulse on navy for the bundled app icon.
