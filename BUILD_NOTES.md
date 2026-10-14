@@ -65,4 +65,3 @@ Sleep/recovery/respiration remain custom estimates. No validated claim of
 clinical accuracy or equivalence to WHOOP's proprietary algorithm is made.
 WHOOP export imports and HealthKit behavior require separate device testing;
 RMSSD must never be written under HealthKit's SDNN measurement type.
-

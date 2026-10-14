@@ -145,4 +145,3 @@ scripts/      packaging metadata validation and icon generation
 
 Unwhoop is an independent project and is not affiliated with or endorsed by
 WHOOP. The name identifies the hardware it interoperates with.
-
