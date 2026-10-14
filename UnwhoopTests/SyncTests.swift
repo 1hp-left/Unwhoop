@@ -57,7 +57,7 @@ final class SyncTests: XCTestCase {
         let band = SyncTestBand()
         let state = AppState(sync: band, rawStore: RawSyncStore(directory: directory))
         state.configurePersistence(ModelContext(container))
-        let now = Date()
+        let now = SensorPipeline.minute(Date()).addingTimeInterval(30)
         var diag = SyncDiagnostics(startedAt: now, historyCommandSent: true, historyStartMarkers: 1,
                                    historyCompleteSeen: false, historicalRecords: 300, realtimeRecords: 0,
                                    rrValuesReceived: 0, notificationStates: [:], lastNotificationAt: [:])
