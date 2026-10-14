@@ -125,7 +125,7 @@ final class ScoringPipelineTests: XCTestCase {
     func testStillSleepingNightCannotFinalizeScores() throws {
         let store = try container()
         let morning = calendar.startOfDay(for: Date())
-        let cutoff = morning.addingTimeInterval(3600)
+        let cutoff = morning.addingTimeInterval(75 * 60)
         let source = nightBatch(morning: morning)
         let partial = RawSampleBatch(heartRates: source.heartRates.filter { $0.date < cutoff },
                                      rrIntervals: source.rrIntervals.filter { $0.date < cutoff },
