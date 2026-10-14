@@ -11,6 +11,9 @@ struct AutomaticSyncPolicy {
     static func retryInterval(charging: Bool, lowPower: Bool) -> TimeInterval {
         lowPower ? 4 * 3600 : (charging ? 30 * 60 : 60 * 60)
     }
+    static func foregroundInterval(charging: Bool, lowPower: Bool, continuing: Bool) -> TimeInterval {
+        lowPower ? 4 * 3600 : (charging && continuing ? 60 : 5 * 60)
+    }
 }
 
 /// iOS decides launch timing. Charging processing requests complement the
@@ -24,7 +27,7 @@ final class BackgroundSyncController {
     private var retryTimer: Timer?
     private let logger = Logger(subsystem: "com.unwhoop.app", category: "BackgroundSync")
     private let lastAttemptKey = "com.unwhoop.auto.lastAttempt"
-    private var previousCharging = false
+    private var previousFullOffloadPower = false
     private var configuredBudget: Int?
 
     init(state: AppState) {
@@ -43,7 +46,12 @@ final class BackgroundSyncController {
             if case .failed = progress { self?.finishActive(success: false) }
             if case .deferred = progress { self?.finishActive(success: false) }
         }.store(in: &subscriptions)
-        state.onSyncFinished = { [weak self] success in self?.finishActive(success: success) }
+        state.onSyncFinished = { [weak self] success in
+            guard let self else { return }
+            UserDefaults.standard.set(Date(), forKey: self.lastAttemptKey)
+            self.updateNextAttempt()
+            self.finishActive(success: success)
+        }
         NotificationCenter.default.publisher(for: UIDevice.batteryStateDidChangeNotification)
             .receive(on: DispatchQueue.main).sink { [weak self] _ in self?.becameActive() }.store(in: &subscriptions)
         // AppState's persisted completion is observed rather than treating
@@ -52,7 +60,10 @@ final class BackgroundSyncController {
             Task { @MainActor in self?.tick() }
         }
         configurePower()
-        previousCharging = charging
+        NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)
+            .receive(on: DispatchQueue.main).sink { [weak self] _ in self?.becameActive() }.store(in: &subscriptions)
+        previousFullOffloadPower = charging && !lowPower
+        updateNextAttempt()
         schedule()
     }
 
@@ -71,19 +82,33 @@ final class BackgroundSyncController {
         if foregroundActivation { schedule() }
         guard state.hasPairedBand, !state.syncStatus.isBusy else { return }
         let last = UserDefaults.standard.object(forKey: lastAttemptKey) as? Date ?? .distantPast
-        let escalation = charging && !previousCharging && !lowPower
-        previousCharging = charging
-        let interval = foregroundActivation && !lowPower ? 5 * 60 : AutomaticSyncPolicy.retryInterval(charging: charging, lowPower: lowPower)
+        let fullOffloadPower = charging && !lowPower
+        let escalation = fullOffloadPower && !previousFullOffloadPower
+        previousFullOffloadPower = fullOffloadPower
+        let interval = foregroundInterval
+        updateNextAttempt()
         guard escalation || Date().timeIntervalSince(last) >= interval else { return }
         UserDefaults.standard.set(Date(), forKey: lastAttemptKey)
         state.requestSync()
+    }
+
+    private var foregroundInterval: TimeInterval {
+        AutomaticSyncPolicy.foregroundInterval(charging: charging, lowPower: lowPower, continuing: state.hasBudgetContinuation)
+    }
+
+    private func updateNextAttempt() {
+        let last = UserDefaults.standard.object(forKey: lastAttemptKey) as? Date ?? .distantPast
+        state.nextAutomaticSyncAt = max(Date(), last.addingTimeInterval(foregroundInterval))
+        state.automaticSyncHint = lowPower
+            ? "Low phone battery or Low Power Mode limits offload. Charge the phone and turn off Low Power Mode for full transfers."
+            : "Automatic retry while the app is open. Background timing is controlled by iOS."
     }
 
     private func tick() {
         if activeTask != nil {
             switch state.syncStatus {
             case .completed(_, let complete): finishActive(success: complete)
-            case .waitingForData, .failed, .deferred: finishActive(success: false)
+            case .waitingForData, .failed, .deferred, .paused: finishActive(success: false)
             default: break
             }
         }

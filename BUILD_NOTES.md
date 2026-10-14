@@ -1,6 +1,6 @@
 # Build and scoring verification
 
-Version 1.1.0 (6), October 13, 2026. GitHub Actions uses Xcode on macOS to
+Version 1.1.1 (7), October 13, 2026. GitHub Actions uses Xcode on macOS to
 compile the device app, run simulator XCTest, export dashboard screenshots,
 validate the packaged permission/background/icon metadata, and produce an
 unsigned IPA for Sideloadly. The local Windows environment cannot run Xcode.
@@ -32,13 +32,20 @@ unsigned IPA for Sideloadly. The local Windows environment cannot run Xcode.
 - History diagnostics distinguish actual older timestamps from live-window
   packets. R-R diagnostics record source subscription state and last packet
   timing. Empty transfers stay waiting for data without changing Last sync.
+- Normal transfer completion retains the healthy bonded connection. Budget
+  pauses wait for the current history bank and its ACK write confirmation.
+  Restored enabled subscriptions are recognized after hello; pending restored
+  connections have a forty-second timeout. Foreground retries use five minutes,
+  or one minute for charging budget continuations, with low-power backoff kept.
+  Data shows stop reasons, last data-received time, and the next foreground
+  attempt. The verified build passed 32 iOS and 8 metadata tests.
 
 ## Evidence and remaining device checks
 
 The user verified working pairing and real HR/motion/temperature/R-R frames
 on their WHOOP 5.0. Their three supplied transfers contained only live-window
- data; one had sparse R-R and around 20% artifacts. Such data must not produce
- a nightly score.
+data; one had sparse R-R and around 20% artifacts. Such data must not produce
+a nightly score.
 
 Simulator tests cover synthetic overnight sleep/strain/respiration, recovery
 baseline gating, artifact rejection, sparse/stopped/duplicated R-R, still-open

@@ -17,6 +17,8 @@ final class SyncState {
     var historyMessage: String?
     var rrMessage: String?
     var scoringMessage: String?
+    var lastReceivedAt: Date?
+    var transferMessage: String?
 
     init(
         deviceName: String? = nil,

@@ -10,13 +10,13 @@ proprietary scores or as clinical measurements.
 
 ## Current release
 
-**1.1.0 (build 6)** includes the connected scoring pipeline, automatic sync,
+**1.1.1 (build 7)** includes the connected scoring pipeline, automatic sync,
 R-R quality gates, history diagnostics, a WHOOP-inspired dark dashboard, and
 an original U/pulse app icon.
 
-The [verified build](https://github.com/1hp-left/Unwhoop/actions/runs/38491488317)
-compiled the device app and passed **26 iOS tests and 8 metadata tests** at
-commit `a873295`. Pairing and live sensor transfers have been verified on the
+The [verified build](https://github.com/1hp-left/Unwhoop/actions/runs/38496716705)
+compiled the device app and passed **32 iOS tests and 8 metadata tests** at
+commit `9e221f2`. Pairing and live sensor transfers have been verified on the
 user's WHOOP 5.0. Physical overnight backfill and unattended background sync
 still need device verification. See [BUILD_NOTES.md](BUILD_NOTES.md) for details.
 
@@ -49,6 +49,14 @@ Battery-powered transfers are bounded. Full offloads use charging power, and
 low phone or band battery backs off retries. Charging-only background processing
 requests complement CoreBluetooth restoration. **iOS decides background launch
 timing**, so an overnight offload is not guaranteed at a particular time.
+
+Version 1.1.1 preserves a healthy Bluetooth connection after a transfer instead
+of routinely disconnecting. Record/time budgets finish the current history bank
+and wait for its acknowledgement before pausing. Restored connections have a
+timeout. Foreground retries run every five minutes, or after one minute for a
+charging budget continuation; low-power backoff remains four hours. Data shows
+the last data-received time, the transfer stop reason, and the next foreground
+attempt. Background launch timing remains controlled by iOS.
 
 **Data → Sync diagnostics** reports whether actual older timestamps arrived,
 history command/marker information, R-R packet timing, and notification state.

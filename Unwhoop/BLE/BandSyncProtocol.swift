@@ -82,6 +82,57 @@ struct SyncDiagnostics: Codable, Sendable {
     var lastNotificationAt: [String: Date]
     var journalFile: String? = nil
     var rrLastNotificationByChannel: [String: Date] = [:]
+    var stopReason: SyncStopReason? = nil
+    var recordBudget: Int? = nil
+}
+
+enum SyncStopReason: String, Codable, Sendable {
+    case complete, recordBudget, timeBudget, quietTimeout, disconnected, requestedStop, lowBattery, storageFailure, commandFailure
+
+    var isBudgetPause: Bool { self == .recordBudget || self == .timeBudget }
+    var explanation: String {
+        switch self {
+        case .complete: "The band finished its history transfer."
+        case .recordBudget: "The battery record budget was reached. Charging with Low Power Mode off allows full offload."
+        case .timeBudget: "The transfer time budget was reached."
+        case .quietTimeout: "The band stopped sending data for 60 seconds."
+        case .disconnected: "The Bluetooth connection dropped."
+        case .requestedStop: "The transfer was stopped by the app or its background time expired."
+        case .lowBattery: "Band battery is below 10%."
+        case .storageFailure: "Received history could not be written to storage."
+        case .commandFailure: "The band rejected a history command or acknowledgement."
+        }
+    }
+}
+
+/// A bounded transfer must finish its current bank and receive the ACK write
+/// confirmation before another history request can start on the same link.
+struct HistoryTransferBoundary {
+    private(set) var hasOpenBank = false
+    private(set) var pauseRequested = false
+    private(set) var pendingAcknowledgements = 0
+    private(set) var completeReceived = false
+    private var pauseAtAcknowledgement = false
+
+    mutating func requestPause(hasOpenBank: Bool) -> Bool {
+        pauseRequested = true
+        if pendingAcknowledgements > 0 { pauseAtAcknowledgement = true }
+        return !hasOpenBank && pendingAcknowledgements == 0
+    }
+    mutating func bankStarted() { hasOpenBank = true }
+    mutating func bankEnded() {
+        hasOpenBank = false
+        pendingAcknowledgements += 1
+        if pauseRequested { pauseAtAcknowledgement = true }
+    }
+    mutating func acknowledged() -> Bool {
+        pendingAcknowledgements = max(0, pendingAcknowledgements - 1)
+        return pendingAcknowledgements == 0 && (pauseAtAcknowledgement || completeReceived)
+    }
+    mutating func completed() -> Bool {
+        completeReceived = true
+        return pendingAcknowledgements == 0
+    }
 }
 
 // MARK: - Narrow protocol
@@ -105,9 +156,8 @@ protocol BandSyncProtocol: AnyObject {
     func stopScan()
     func connect(to device: BandDevice)
     func disconnect()
-    /// Opportunistic sync: connect (if needed), burst-download everything new,
-    /// disconnect. No continuous foreground BLE — connect, burst, disconnect
-    /// (PRD §7 battery budget).
+    /// Connect if needed and request a bounded history transfer. A normal
+    /// completion preserves the bonded link for subsequent automatic work.
     func requestSync()
 }
 
@@ -120,6 +170,7 @@ enum SyncProgress: Equatable, Sendable {
     case failed(String)
     case waitingForData
     case deferred(String)
+    case paused(samples: Int, reason: String)
 
     var isBusy: Bool {
         switch self {
@@ -141,6 +192,7 @@ enum SyncProgress: Equatable, Sendable {
         case .failed(let reason): reason
         case .waitingForData: "Waiting for sensor data — nothing was received."
         case .deferred(let reason): reason
+        case .paused(let samples, let reason): "Sync paused — \(samples) samples saved. \(reason)"
         }
     }
 }

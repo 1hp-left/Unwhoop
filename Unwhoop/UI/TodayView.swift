@@ -65,6 +65,13 @@ struct TodayView: View {
                                 .font(.subheadline).foregroundStyle(AppTheme.muted)
                             Text("Automatic sync · Full offload while your phone is charging")
                                 .font(.caption).foregroundStyle(AppTheme.muted)
+                            if !appState.syncStatus.isBusy, let next = appState.nextAutomaticSyncAt {
+                                Text("Next foreground attempt: \(next.formatted(date: .omitted, time: .shortened))")
+                                    .font(.caption).foregroundStyle(AppTheme.muted)
+                            }
+                            if let hint = appState.automaticSyncHint {
+                                Text(hint).font(.caption).foregroundStyle(AppTheme.muted)
+                            }
                             if let message = syncRows.first?.scoringMessage {
                                 Text(message).font(.caption).foregroundStyle(AppTheme.muted)
                             }
