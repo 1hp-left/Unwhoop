@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import CoreBluetooth
 import WhoopProtocol
+import OSLog
 
 // MARK: - NoopBandSyncAdapter
 //
@@ -96,13 +97,19 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     private var scanRequested = false
 
     // Backfill ingest.
-    private var reassembler = Reassembler(family: .whoop5)
+    private let frameDecoder = BandFrameDecoder()
     private var journal: SyncFrameJournal?
+    private var automaticEnabled = true
+    private var maximumRecords = 300
+    private var pendingAutomaticSync = false
+    private var diagnostics: SyncDiagnostics?
+    private let logger = Logger(subsystem: "com.unwhoop.app", category: "BandSync")
     private var seq: UInt8 = 1
     private var chunk: [ParsedFrame] = []
     private var syncing = false
     private var backfillTimeout: DispatchWorkItem?
     private var connectionTimeout: DispatchWorkItem?
+    private var transferBudgetTimeout: DispatchWorkItem?
     private var lastBatteryPct: Int?
 
     private static let backfillTimeoutSeconds: TimeInterval = 60
@@ -137,6 +144,13 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     }
 
     // MARK: BandSyncProtocol
+
+    func configureAutomaticSync(enabled: Bool, maximumRecords: Int) {
+        bleQueue.async { [weak self] in
+            self?.automaticEnabled = enabled
+            self?.maximumRecords = max(50, maximumRecords)
+        }
+    }
 
     func startScan() {
         bleQueue.async { [weak self] in
@@ -178,6 +192,10 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     func disconnect() {
         bleQueue.async { [weak self] in
             guard let self, self.central != nil else { return }
+            if self.syncing {
+                self.finishSync(completed: false)
+                return
+            }
             self.wantSyncOnHello = false
             if let p = self.peripheral {
                 self.central.cancelPeripheralConnection(p)
@@ -204,6 +222,10 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
     private func requestSyncOnQueue() {
             if syncing || wantSyncOnHello { return }
             syncProgress.send(.connecting)
+            if central.state == .unknown || central.state == .resetting {
+                pendingAutomaticSync = true
+                return
+            }
             guard central.state == .poweredOn else {
                 syncProgress.send(.failed("Bluetooth is unavailable. Enable Bluetooth and allow Unwhoop access in Settings, then try again."))
                 return
@@ -236,7 +258,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         peripheral = p
         p.delegate = self
         readiness = BandSessionReadiness(requiredNotifications: Whoop5Gatt.notifySet)
-        reassembler = Reassembler(family: .whoop5)
+        frameDecoder.reset()
         helloBondAttempts = 0
         helloRetry?.cancel()
         helloRetry = nil
@@ -269,6 +291,8 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         connectionTimeout = nil
         journal?.close()
         journal = nil
+        transferBudgetTimeout?.cancel()
+        transferBudgetTimeout = nil
     }
 
     private func scheduleConnectionTimeout() {
@@ -294,7 +318,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         connectionTimeout = nil
         connectionState.send(.connected)
         writeCommand(cmd: PuffinOpcode.getBatteryLevel, payload: [0x00], withResponse: true)
-        if wantSyncOnHello {
+        if wantSyncOnHello || automaticEnabled {
             wantSyncOnHello = false
             beginBackfill()
         }
@@ -360,6 +384,11 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
 
     private func beginBackfill() {
         guard !syncing, readiness.isReady else { return }
+        if let battery = lastBatteryPct, battery < 10 {
+            syncProgress.send(.deferred("Band battery is below 10%. Charge the band; automatic sync will retry later."))
+            if let p = peripheral { central.cancelPeripheralConnection(p) }
+            return
+        }
         do {
             journal = try SyncFrameJournal()
         } catch {
@@ -368,11 +397,21 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         }
         syncing = true
         chunk = []
+        diagnostics = SyncDiagnostics(startedAt: .now, historyCommandSent: true, historyStartMarkers: 0,
+                                      historyCompleteSeen: false, historicalRecords: 0, realtimeRecords: 0,
+                                      lastRRNotificationAt: nil, lastRRSampleAt: nil, rrValuesReceived: 0,
+                                      notificationStates: Dictionary(uniqueKeysWithValues: puffinNotify.map { ($0.uuid.uuidString.lowercased(), $0.isNotifying) }),
+                                      lastNotificationAt: [:])
+        logger.info("Requesting SEND_HISTORICAL_DATA opcode 22; record budget \(self.maximumRecords)")
         syncProgress.send(.receiving(records: 0))
         connectionState.send(.syncing)
         // Payload MUST be [0x00], not empty — the strap serves zero frames
         // for an empty payload even with records pending (verified on-device).
         writeCommand(cmd: PuffinOpcode.sendHistoricalData, payload: [0x00], withResponse: true)
+        transferBudgetTimeout?.cancel()
+        let budget = DispatchWorkItem { [weak self] in self?.finishSync(completed: false) }
+        transferBudgetTimeout = budget
+        bleQueue.asyncAfter(deadline: .now() + (maximumRecords == Int.max ? 600 : 120), execute: budget)
         refreshBackfillTimeout()
     }
 
@@ -398,6 +437,8 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
             chunk, deviceClockRef: now, wallClockRef: now, family: .whoop5)
 
         let stepByTs = Dictionary(streams.steps.map { ($0.ts, $0) }, uniquingKeysWith: { _, newest in newest })
+        diagnostics?.lastRRSampleAt = streams.rr.map(\.ts).max().map { Date(timeIntervalSince1970: Double($0)) }
+        diagnostics?.journalFile = journal?.url.lastPathComponent
         let batch = RawSampleBatch(
             heartRates: streams.hr.map {
                 (date: Date(timeIntervalSince1970: TimeInterval($0.ts)), bpm: Double($0.bpm))
@@ -420,12 +461,13 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
                  celsius: skinTempCelsius(raw: $0.raw, family: .whoop5))
             },
             batteryPercent: streams.battery.last?.soc.map { Int($0) } ?? lastBatteryPct,
-            isComplete: completed
+            isComplete: completed, diagnostics: diagnostics
         )
         // The strap freed every acked record as we went, so what we hold is
         // ours — deliver even partial (isComplete=false) rather than lose it.
         syncProgress.send(.saving)
         onBatch?(batch)
+        logger.info("Transfer ended: complete=\(completed), records=\(self.chunk.count), RR=\(streams.rr.count)")
 
         connectionState.send(.connected)
         if let p = peripheral {
@@ -437,11 +479,16 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
 
     // MARK: Frame handling (bleQueue only)
 
-    private func handleNotifyBytes(_ bytes: [UInt8]) {
-        for frame in reassembler.feed(bytes) {
+    private func handleNotifyBytes(_ bytes: [UInt8], channel: String) {
+        for frame in frameDecoder.feed(bytes, channel: channel) {
             let parsed = parseFrame(frame, family: .whoop5)
             // CRC-gate every inbound frame before acting on it.
             guard parsed.ok else { continue }
+            if syncing, let rrs = parsed.parsed["rr_intervals"]?.intArrayValue, !rrs.isEmpty {
+                diagnostics?.lastRRNotificationAt = .now
+                diagnostics?.rrLastNotificationByChannel[channel] = .now
+                diagnostics?.rrValuesReceived += rrs.count
+            }
             if syncing {
                 refreshBackfillTimeout()
                 do { try journal?.append(Data(frame)) } catch {
@@ -458,11 +505,18 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
             case "HISTORICAL_DATA":
                 if syncing {
                     chunk.append(parsed)
+                    diagnostics?.historicalRecords += 1
                     syncProgress.send(.receiving(records: chunk.count))
+                }
+            case "REALTIME_RAW_DATA":
+                if syncing {
+                    chunk.append(parsed)
+                    diagnostics?.realtimeRecords += 1
                 }
             default:
                 break
             }
+            if syncing && chunk.count >= maximumRecords { finishSync(completed: false); return }
         }
     }
 
@@ -481,6 +535,7 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
         guard syncing else { return }
         switch classifyHistoricalMeta(parsed) {
         case .start:
+            diagnostics?.historyStartMarkers += 1
             // Each history bank has a start marker. Keep earlier banks.
             break
         case .end:
@@ -499,8 +554,10 @@ final class NoopBandSyncAdapter: NSObject, BandSyncProtocol {
                 if let p = peripheral, let c = cmdChar {
                     p.writeValue(Data(ack), for: c, type: .withResponse)
                 }
+                if chunk.count >= maximumRecords { finishSync(completed: false) }
             }
         case .complete:
+            diagnostics?.historyCompleteSeen = true
             finishSync(completed: true)
         case .other:
             chunk.append(parsed)
@@ -515,6 +572,10 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
         case .poweredOn:
+            if pendingAutomaticSync {
+                pendingAutomaticSync = false
+                requestSyncOnQueue()
+            }
             if scanRequested {
                 connectionState.send(.scanning)
                 central.scanForPeripherals(
@@ -552,6 +613,7 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        if automaticEnabled { wantSyncOnHello = true }
         // 5.0 session service + standard profiles (live HR, battery).
         peripheral.discoverServices([
             CBUUID(string: Whoop5Gatt.service),
@@ -605,6 +667,7 @@ extension NoopBandSyncAdapter: CBCentralManagerDelegate {
             peripheral = p
             readiness = BandSessionReadiness(requiredNotifications: Whoop5Gatt.notifySet)
             connectionState.send(.connecting)
+            wantSyncOnHello = automaticEnabled
             if p.state == .connected { centralManager(central, didConnect: p) }
         }
     }
@@ -716,6 +779,7 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
         guard self.peripheral?.identifier == peripheral.identifier else { return }
         guard error == nil, let data = characteristic.value else { return }
         let uuid = characteristic.uuid.uuidString.lowercased()
+        diagnostics?.lastNotificationAt[uuid] = .now
         if uuid == "2a19" {
             // Standard battery level: single uint8 percent.
             if let byte = data.first {
@@ -728,7 +792,7 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
         }
         let notifyUUIDs = Whoop5Gatt.notifySet
         if notifyUUIDs.contains(uuid) {
-            handleNotifyBytes(Array(data))
+            handleNotifyBytes(Array(data), channel: uuid)
         }
     }
 
@@ -740,6 +804,8 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
         guard self.peripheral?.identifier == peripheral.identifier else { return }
         let uuid = characteristic.uuid.uuidString.lowercased()
         guard Whoop5Gatt.notifySet.contains(uuid) else { return }
+        diagnostics?.notificationStates[uuid] = characteristic.isNotifying && error == nil
+        logger.info("Notify channel \(uuid, privacy: .public) enabled=\(characteristic.isNotifying), error=\(error != nil)")
         guard error == nil, characteristic.isNotifying else {
             failConnection("The band refused its data subscription. Reconnect and try again.")
             return

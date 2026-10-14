@@ -34,12 +34,12 @@ struct TrendsView: View {
 
     private var nightsInRange: [NightSummary] {
         let cutoff = Calendar.current.date(byAdding: .day, value: -range.days, to: .now) ?? .distantPast
-        return nights.filter { $0.nightDate >= cutoff }.sorted { $0.nightDate < $1.nightDate }
+        return nights.filter { $0.nightDate >= cutoff && !$0.lowConfidence && $0.hrvAvailable }.sorted { $0.nightDate < $1.nightDate }
     }
 
     private var daysInRange: [DaySummary] {
         let cutoff = Calendar.current.date(byAdding: .day, value: -range.days, to: .now) ?? .distantPast
-        return days.filter { $0.dayDate >= cutoff }.sorted { $0.dayDate < $1.dayDate }
+        return days.filter { $0.dayDate >= cutoff && $0.strainAvailable }.sorted { $0.dayDate < $1.dayDate }
     }
 
     var body: some View {

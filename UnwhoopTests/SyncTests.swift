@@ -41,8 +41,8 @@ final class SyncTests: XCTestCase {
     }
 
     private func batch(complete: Bool) -> RawSampleBatch {
-        RawSampleBatch(heartRates: [(Date(timeIntervalSince1970: 1_790_000_000), 64)],
-                       rrIntervals: [(Date(timeIntervalSince1970: 1_790_000_000), 0.95)],
+        RawSampleBatch(heartRates: [(Date().addingTimeInterval(-60), 64)],
+                       rrIntervals: [(Date().addingTimeInterval(-60), 0.95)],
                        motionFrames: [], skinTemperatures: [], batteryPercent: 72,
                        isComplete: complete)
     }
@@ -87,7 +87,7 @@ final class SyncTests: XCTestCase {
 
     @MainActor
     func testSyncUpdatesPersistenceAndPartialSyncDoesNotClaimCompletion() async throws {
-        let schema = Schema([AppSettings.self, SyncState.self])
+        let schema = Schema([AppSettings.self, SyncState.self, SensorMinute.self, NightSummary.self, DaySummary.self])
         let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -99,8 +99,10 @@ final class SyncTests: XCTestCase {
         state.requestSync()
         state.requestSync()
         XCTAssertEqual(band.requests, 1)
+        let completed = expectation(description: "complete data persisted")
+        state.onSyncFinished = { _ in completed.fulfill() }
         band.onBatch?(batch(complete: true))
-        try await Task.sleep(nanoseconds: 100_000_000)
+        await fulfillment(of: [completed], timeout: 15)
         let context = ModelContext(container)
         let link = try XCTUnwrap(context.fetch(FetchDescriptor<SyncState>()).first)
         let lastSuccess = try XCTUnwrap(link.lastSync)
@@ -108,8 +110,10 @@ final class SyncTests: XCTestCase {
         XCTAssertEqual(link.batteryPercent, 72)
         XCTAssertEqual(state.syncStatus, .completed(samples: 2, complete: true))
         XCTAssertNotNil(state.latestRawExport)
+        let partial = expectation(description: "partial data persisted")
+        state.onSyncFinished = { _ in partial.fulfill() }
         band.onBatch?(batch(complete: false))
-        try await Task.sleep(nanoseconds: 100_000_000)
+        await fulfillment(of: [partial], timeout: 15)
         let reloaded = try XCTUnwrap(ModelContext(container).fetch(FetchDescriptor<SyncState>()).first)
         XCTAssertEqual(reloaded.lastSync, lastSuccess)
         XCTAssertEqual(state.syncStatus, .completed(samples: 2, complete: false))

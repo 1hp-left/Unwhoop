@@ -19,7 +19,7 @@ private final class SnapshotBand: BandSyncProtocol {
 final class DashboardSnapshots: XCTestCase {
     @MainActor
     func testDashboardSnapshots() throws {
-        let schema = Schema([AppSettings.self, SyncState.self, NightSummary.self, DaySummary.self])
+        let schema = Schema([AppSettings.self, SyncState.self, NightSummary.self, DaySummary.self, SensorMinute.self])
         let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
         let state = AppState(sync: SnapshotBand())
         state.configurePersistence(container.mainContext)

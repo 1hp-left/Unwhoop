@@ -46,7 +46,7 @@ struct Baselines: Sendable {
     static func build(from nights: [NightSummary]) -> Baselines {
         let usable = nights
             .sorted { $0.nightDate < $1.nightDate }
-            .filter { !$0.lowConfidence && $0.confounderFlags.isEmpty }
+            .filter { !$0.lowConfidence && $0.hrvAvailable && $0.restingHRAvailable && $0.confounderFlags.isEmpty }
             .suffix(7)
         func stats(_ vals: [Double]) -> MetricBaseline {
             guard !vals.isEmpty else {

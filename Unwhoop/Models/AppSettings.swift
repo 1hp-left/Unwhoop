@@ -18,6 +18,9 @@ final class AppSettings {
 
     // Baseline bookkeeping
     var baselineStartDate: Date?
+    var maximumHeartRate: Double?
+    var trainingSexRaw: String?
+    var sleepGoalMinutes: Double = 480
 
     // Sleep-score weights, fitted on-device by the dev-only tuner against the
     // user's WHOOP export (or the shipped defaults until then).

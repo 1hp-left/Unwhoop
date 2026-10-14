@@ -38,6 +38,14 @@ struct DataView: View {
                              onSync: { appState.requestSync() })
                 }
 
+                Section("Sync diagnostics") {
+                    Text(sync?.historyMessage ?? "Waiting for a transfer to verify older history.")
+                    Text(sync?.rrMessage ?? "No R-R diagnostic data yet.")
+                    Text(sync?.scoringMessage ?? "Scores need sufficient overnight sensor coverage.")
+                }
+                .font(.caption)
+                .foregroundStyle(AppTheme.muted)
+
                 #if DEBUG
                 Section("Benchmark entry (dev)") {
                     WhoopImportView()
@@ -124,13 +132,8 @@ private struct BandCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button {
-                    onSync()
-                } label: {
-                    Label("Sync now", systemImage: "arrow.triangle.2.circlepath")
-                }
-                .buttonStyle(.bordered)
-                .disabled(progress.isBusy || connection == .invalidInstallation)
+                Label("Automatic", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.caption).foregroundStyle(AppTheme.strain)
             }
             if let message = progress.label ?? lastMessage {
                 HStack(alignment: .top, spacing: 8) {
@@ -298,6 +301,7 @@ private struct ShareSheet: UIViewControllerRepresentable {
 // MARK: - Settings (the entire settings surface)
 
 private struct SettingsForm: View {
+    @Environment(AppState.self) private var appState
     @Query private var settingsRows: [AppSettings]
     @Environment(\.modelContext) private var modelContext
     @Query private var nights: [NightSummary]
@@ -305,12 +309,36 @@ private struct SettingsForm: View {
 
     @State private var showResetConfirm = false
     @State private var healthKitDenied = false
+    @State private var maxHRText = ""
+    @State private var profileError: String?
 
     private var settings: AppSettings? { settingsRows.first }
 
     var body: some View {
         Group {
             if let settings {
+                LabeledContent("Maximum heart rate") {
+                    TextField("Not set", text: $maxHRText)
+                        .keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                        .frame(width: 90)
+                        .accessibilityLabel("Maximum heart rate in beats per minute")
+                }
+                Picker("Physiology for strain", selection: Binding(
+                    get: { settings.trainingSexRaw ?? "unset" },
+                    set: { settings.trainingSexRaw = $0 == "unset" ? nil : $0; saveProfile() }
+                )) {
+                    Text("Not set").tag("unset")
+                    Text("Male").tag(BiologicalSex.male.rawValue)
+                    Text("Female").tag(BiologicalSex.female.rawValue)
+                }
+                Text("Set your maximum HR and physiology to enable strain. Resting HR is measured from quiet overnight data.")
+                    .font(.caption).foregroundStyle(AppTheme.muted)
+                Stepper(value: Binding(
+                    get: { settings.sleepGoalMinutes / 60 },
+                    set: { settings.sleepGoalMinutes = $0 * 60; saveProfile() }
+                ), in: 6...10, step: 0.5) {
+                    Text("Sleep target: \(settings.sleepGoalMinutes / 60, specifier: "%.1f") hours")
+                }
                 Picker("Units", selection: Binding(
                     get: { settings.temperatureUnit },
                     set: { settings.temperatureUnit = $0 }
@@ -354,6 +382,22 @@ private struct SettingsForm: View {
                 }
             }
         }
+        .onAppear { maxHRText = settings?.maximumHeartRate.map { String(Int($0)) } ?? "" }
+        .onChange(of: maxHRText) { _, value in
+            guard let settings else { return }
+            if value.isEmpty { settings.maximumHeartRate = nil; saveProfile() }
+            else if let number = Double(value), (80...240).contains(number) {
+                settings.maximumHeartRate = number; saveProfile()
+            }
+        }
+        .alert("Could not save settings", isPresented: Binding(get: { profileError != nil }, set: { if !$0 { profileError = nil } })) {
+            Button("OK") { profileError = nil }
+        } message: { Text(profileError ?? "Please try again.") }
+    }
+
+    private func saveProfile() {
+        do { try modelContext.save(); appState.refreshScores() }
+        catch { modelContext.rollback(); profileError = error.localizedDescription }
     }
 
     private func enableHealthKit(settings: AppSettings) async {

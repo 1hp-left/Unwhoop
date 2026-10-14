@@ -41,6 +41,13 @@ final class NightSummary {
     var lowConfidence: Bool
     var confidenceReason: String?
     var confounderFlagsRaw: [String] // ConfounderFlag raw values
+    var hrvAvailable: Bool = true
+    var restingHRAvailable: Bool = true
+    var sleepCoverage: Double = 1
+    var rrCoverage: Double = 1
+    var rrArtifactFraction: Double = 0
+    var meanSkinTemperature: Double?
+    var sleepScoreBasis: String?
 
     var recoveryBand: RecoveryBand? {
         get { recoveryBandRaw.flatMap(RecoveryBand.init(rawValue:)) }

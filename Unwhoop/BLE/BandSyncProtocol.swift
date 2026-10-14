@@ -65,6 +65,23 @@ struct RawSampleBatch: Sendable {
     let batteryPercent: Int?
     /// True when this batch completes a sync session (drives "last sync" time).
     let isComplete: Bool
+    var diagnostics: SyncDiagnostics? = nil
+}
+
+struct SyncDiagnostics: Codable, Sendable {
+    var startedAt: Date
+    var historyCommandSent: Bool
+    var historyStartMarkers: Int
+    var historyCompleteSeen: Bool
+    var historicalRecords: Int
+    var realtimeRecords: Int
+    var lastRRNotificationAt: Date?
+    var lastRRSampleAt: Date?
+    var rrValuesReceived: Int
+    var notificationStates: [String: Bool]
+    var lastNotificationAt: [String: Date]
+    var journalFile: String? = nil
+    var rrLastNotificationByChannel: [String: Date] = [:]
 }
 
 // MARK: - Narrow protocol
@@ -75,6 +92,7 @@ struct RawSampleBatch: Sendable {
 ///
 /// Zero network calls. Everything here is CoreBluetooth-local.
 protocol BandSyncProtocol: AnyObject {
+    func configureAutomaticSync(enabled: Bool, maximumRecords: Int)
     var syncProgress: CurrentValueSubject<SyncProgress, Never> { get }
     /// Current connection state; UI subscribes directly.
     var connectionState: CurrentValueSubject<ConnectionState, Never> { get }
@@ -100,6 +118,8 @@ enum SyncProgress: Equatable, Sendable {
     case saving
     case completed(samples: Int, complete: Bool)
     case failed(String)
+    case waitingForData
+    case deferred(String)
 
     var isBusy: Bool {
         switch self {
@@ -112,15 +132,21 @@ enum SyncProgress: Equatable, Sendable {
         switch self {
         case .idle: nil
         case .connecting: "Connecting to your band…"
-        case .receiving(let records): "Receiving history: \(records) records…"
+        case .receiving(let records): "Receiving sensor data: \(records) records…"
         case .saving: "Saving received data…"
         case .completed(let samples, let complete):
             samples == 0
-                ? (complete ? "Sync complete — no new samples on the band." : "No samples received. Sync was interrupted; try again.")
-                : (complete ? "Sync complete — \(samples) samples saved." : "Sync interrupted — \(samples) samples saved. Tap Sync now to continue.")
+                ? (complete ? "Waiting for sensor data — nothing was received." : "No samples received. Sync was interrupted; try again.")
+                : (complete ? "Sync complete — \(samples) samples saved." : "Sync interrupted — \(samples) samples saved. Automatic sync will continue later.")
         case .failed(let reason): reason
+        case .waitingForData: "Waiting for sensor data — nothing was received."
+        case .deferred(let reason): reason
         }
     }
+}
+
+extension BandSyncProtocol {
+    func configureAutomaticSync(enabled: Bool, maximumRecords: Int) {}
 }
 
 /// Only the first command write is the hello. Later write acknowledgements

@@ -27,6 +27,7 @@ def validate(plist, source, version, build):
         "NSBluetoothAlwaysUsageDescription", "NSHealthUpdateUsageDescription",
         "UIBackgroundModes", "UISupportedInterfaceOrientations",
         "UILaunchScreen", "LSRequiresIPhoneOS",
+        "BGTaskSchedulerPermittedIdentifiers",
     ):
         if key not in plist or plist[key] != source[key]:
             raise ValueError(f"Missing or changed {key}: {plist.get(key)!r}")
