@@ -108,6 +108,16 @@ final class SyncTests: XCTestCase {
         XCTAssertFalse(ready.isReady)
     }
 
+    func testRestoredSubscriptionsCanBecomeReadyWithoutNewNotifyCallbacks() {
+        var ready = BandSessionReadiness(requiredNotifications: ["history", "metadata"])
+        // Cached subscriptions are considered only after the encrypted hello.
+        XCTAssertFalse(ready.isReady)
+        XCTAssertTrue(ready.acceptHello())
+        for id in ["history", "metadata"] { ready.notificationChanged(id, enabled: true) }
+        XCTAssertTrue(ready.takeReadyTransition())
+        XCTAssertFalse(ready.takeReadyTransition())
+    }
+
     private func batch(complete: Bool) -> RawSampleBatch {
         RawSampleBatch(heartRates: [(Date().addingTimeInterval(-60), 64)],
                        rrIntervals: [(Date().addingTimeInterval(-60), 0.95)],

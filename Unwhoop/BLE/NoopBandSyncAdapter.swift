@@ -844,7 +844,13 @@ extension NoopBandSyncAdapter: CBPeripheralDelegate {
         UserDefaults.standard.set(
             peripheral.identifier.uuidString, forKey: Self.lastBandKey)
         for c in puffinNotify {
-            peripheral.setNotifyValue(true, for: c)
+            if c.isNotifying {
+                // Restored subscriptions may already be enabled and need not
+                // emit another state-change callback. Hello has succeeded.
+                readiness.notificationChanged(c.uuid.uuidString.lowercased(), enabled: true)
+            } else {
+                peripheral.setNotifyValue(true, for: c)
+            }
         }
         finishHandshakeIfReady()
     }
